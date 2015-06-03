@@ -1,0 +1,8 @@
+{
+    "db" : {
+        "hosts" : ["localhost"],
+        "port" : 9042,
+        "connectTimeout":0,
+        "skipSchemaValidation": true
+    }
+}

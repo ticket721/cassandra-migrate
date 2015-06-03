@@ -1,0 +1,7 @@
+{
+    "getKeyspace": "SELECT keyspace_name FROM system.schema_keyspaces WHERE keyspace_name='<keyspace_name>';",
+    "getColumnFamily": "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='<keyspace_name>' and columnfamily_name = 'sys_migrations';",
+    "createMigrationTable": "CREATE TABLE <keyspace_name>.sys_migrations(file_path TEXT, created_at TIMESTAMP, name TEXT, description TEXT, PRIMARY KEY (file_path, created_at));",
+    "getMigration": "SELECT * from <keyspace_name>.sys_migrations;",
+    "insertMigration": "INSERT INTO <keyspace_name>.sys_migrations(file_path, created_at, name, description) values('<file_path>', <created_at>, '<name>', '<description>');"
+}

@@ -1,7 +1,10 @@
 # Logs
 logs
 *.log
-
+.idea/*
+.DS_store
+.orig
+*.swp
 # Runtime data
 pids
 *.pid
