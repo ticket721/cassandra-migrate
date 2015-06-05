@@ -1,40 +1,40 @@
-var program = require("commander")
-    , fs = require('fs')
-    , exists = fs.existsSync || path.existsSync
-    , Cassanova = require('cassanova')
-    , async = require("async")
-    , cwd
-    , needToRun =[]
-    , migration_settings = require("../scripts/migrationSettings.json")
-    , batchQueries = []
-    , reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.cql$/i // regex to find migration files.
-    , cqlRegex = /-{0,}\s*<cql[^>]*>([\s\S]*?)-{0,}\s*<\/cql>/gmi
-    , upRegex = /-{0,}\s*<up[^>]*>([\s\S]*?)-{0,}\s*<\/up>/gmi
-    , downRegex = /-{0,}\s*<down[^>]*>([\s\S]*?)-{0,}\s*<\/down>/gmi
-    , migrationInsertQueries = []
-    , filesRan = []
-    , path = require('path');
+var program = require("commander"),
+    fs = require('fs'),
+    exists = fs.existsSync || path.existsSync,
+    Cassanova = require('cassanova'),
+    async = require("async"),
+    cwd,
+    needToRun =[],
+    migration_settings = require("../scripts/migrationSettings.json"),
+    batchQueries = [],
+    reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.cql$/i, // regex to find migration files.,
+    cqlRegex = /-{0,}\s*<cql[^>]*>([\s\S]*?)-{0,}\s*<\/cql>/gmi,
+    upRegex = /-{0,}\s*<up[^>]*>([\s\S]*?)-{0,}\s*<\/up>/gmi,
+    downRegex = /-{0,}\s*<down[^>]*>([\s\S]*?)-{0,}\s*<\/down>/gmi,
+    migrationInsertQueries = [],
+    filesRan = [],
+    path = require('path');
 
 /**
  * Usage information.
  */
 
 var usage = [
+    '',
+    '  example : ',
+    '',
+    '  cassanova-migrate [options] [command]',
+    '',
+    '  cassanova-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
+    '',
+    '  cassanova-migrate -k <keyspace>. (Runs pending cassandra migrations)',
+    '',
+    '  cassanova-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
+    '',
+    '  cassanova-migrate <create>. (Creates a new cassandra migration)',
+    '',
+    '  cassanova-migrate -k <keyspace> -s',
     ''
-    , '  example : '
-    , ''
-    , '  cassanova-migrate [options] [command]'
-    , ''
-    , '  cassanova-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)'
-    , ''
-    , '  cassanova-migrate -k <keyspace>. (Runs pending cassandra migrations)'
-    , ''
-    , '  cassanova-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).'
-    , ''
-    , '  cassanova-migrate <create>. (Creates a new cassandra migration)'
-    , ''
-    , '  cassanova-migrate -k <keyspace> -s'
-    , ''
 ].join('\n');
 
 program.on('--help', function(){
@@ -48,7 +48,7 @@ program
     .option('-n, --num "<migrationNumber>"', "Run migrations until migration Number.")
     .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
     .option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
-    .option('-s, --silent', "Hide output while executing.", false)
+    .option('-s, --silent', "Hide output while executing.", false);
 
 program.name = 'cassanova-migrate';
 
@@ -111,7 +111,7 @@ var createMigration = function(title){
         return yyyy + (mm[1]?mm:"0"+mm[0]) + (dd[1]?dd:"0"+dd[0]); // padding
     })(new Date());
 
-    var fileName = migCount + '_' + title + '_' + dateString + '.cql'
+    var fileName = migCount + '_' + title + '_' + dateString + '.cql';
 
     fs.writeFileSync(process.cwd() + '/' + fileName,
         "--<up>" + "\n"+
@@ -189,8 +189,9 @@ var prepareMigrations = function(callback){
             function(migrationExists, callback){
                 // Create migration table if doesn't exist.
                 // return data otherwise.
+                var query;
                 if(!migrationExists){
-                    var query = migration_settings.createMigrationTable.replace('<keyspace_name>', program.keyspace);
+                    query = migration_settings.createMigrationTable.replace('<keyspace_name>', program.keyspace);
                     Cassanova.execute(query, function(err, response){
                         if(err){
                             return callback(err);
@@ -395,7 +396,7 @@ var output = function(msg){
     if(!program.silent){
         console.log(msg);
     }
-}
+};
 
 output("Initializing Migration...");
 
@@ -428,7 +429,6 @@ var processArguments = function(callback){
 async.series(
     [
         function(callback){
-            debugger;
             processArguments(callback);
         },
         function(callback){

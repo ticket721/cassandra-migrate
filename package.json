@@ -32,20 +32,14 @@
   "dependencies": {
     "async": "^0.9.0",
     "cassanova": "^0.6.5",
-    "commander": "^2.8.1",
-    "config": "^1.13.0"
+    "commander": "^2.8.1"
   },
   "devDependencies": {
-    "grunt-mocha-istanbul": "2.2.0",
-    "grunt-githooks": "0.3.1",
     "grunt": "0.4.5",
     "grunt-contrib-clean": "0.6.0",
-    "grunt-contrib-jshint": "0.10.0",
-    "mocha": "2.0.1",
-    "progress": "1.1.8",
-    "should": "4.3.0"
+    "grunt-contrib-jshint": "0.10.0"
   },
   "scripts": {
-    "test": "mocha test -R spec -t 5000 -s 0"
+
   }
 }
