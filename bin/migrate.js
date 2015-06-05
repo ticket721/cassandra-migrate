@@ -23,17 +23,17 @@ var usage = [
     ''
     , '  example : '
     , ''
-    , '  cassandra-migrate [options] [command]'
+    , '  cassanova-migrate [options] [command]'
     , ''
-    , '  cassandra-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)'
+    , '  cassanova-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)'
     , ''
-    , '  cassandra-migrate -k <keyspace>. (Runs pending cassandra migrations)'
+    , '  cassanova-migrate -k <keyspace>. (Runs pending cassandra migrations)'
     , ''
-    , '  cassandra-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).'
+    , '  cassanova-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).'
     , ''
-    , '  cassandra-migrate <create>. (Creates a new cassandra migration)'
+    , '  cassanova-migrate <create>. (Creates a new cassandra migration)'
     , ''
-    , '  cassandra-migrate -k <keyspace> -s'
+    , '  cassanova-migrate -k <keyspace> -s'
     , ''
 ].join('\n');
 
@@ -50,7 +50,7 @@ program
     .option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
     .option('-s, --silent', "Hide output while executing.", false)
 
-program.name = 'cassandra-migrate';
+program.name = 'cassanova-migrate';
 
 // init command
 
@@ -228,10 +228,29 @@ var prepareMigrations = function(callback){
                 // Looping through migration files and
                 // filtering what needs to run.
                 var files = fs.readdirSync(cwd);
+
+                var migrationsRan = [];
+                //for(var j = 0 ; j < files.length; j++){
+                //    if(reFileName.test(files[j]) && files[j].indexOf(filesRan[j]) === -1){
+                //        needToRun.push(files[j]);
+                //        migrationsRan.push(files[j].substr(0,4));
+                //    }
+                //}
                 for(var j = 0 ; j < files.length; j++){
-                    if(reFileName.test(files[j]) && files[j].indexOf(filesRan[j]) === -1){
-                        needToRun.push(files[j]);
+                    if(reFileName.test(files[j])){
+                        if(files[j].indexOf(filesRan[j]) === -1){
+                            needToRun.push(files[j]);
+                        }
+                        
+                        migrationsRan.push(files[j].substr(0,4));
                     }
+                }
+                //Todo : should I do -n calc here
+
+                if(program.num){
+                    // todo Calculate what is already run migrationsRan
+                    // todo what needs to be run 
+                    //
                 }
 
                 // Return if there are no migration to run.
