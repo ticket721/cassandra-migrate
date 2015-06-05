@@ -149,7 +149,7 @@ program.parse(process.argv);
  * @param callback
  */
 
-var validateMigrations = function(callback){
+var prepareMigrations = function(callback){
 
     output("Validating Migration.");
 
@@ -236,7 +236,7 @@ var validateMigrations = function(callback){
 
                 // Return if there are no migration to run.
                 if(!needToRun.length){
-                    return callback('No pending migration found.');
+                    return callback('No incremental upgrades to run at this time.');
                 }
 
                 // Building queries to update
@@ -274,9 +274,10 @@ var validateMigrations = function(callback){
                     }
                 }
 
-                console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
-                console.log('migrationInsertQueries :\n' + JSON.stringify(migrationInsertQueries, null, 2));
-
+                //console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
+                //console.log('migrationInsertQueries :\n' + JSON.stringify(migrationInsertQueries, null, 2));
+                batchQueries.splice.apply(batchQueries, [batchQueries.length, 0].concat(migrationInsertQueries));
+                //console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
                 callback(null, false);
             }
         ],
@@ -292,11 +293,53 @@ var validateMigrations = function(callback){
     );
 };
 
-var runMigration = function(filePath, callback){
-    //var
-    //for(var i = 0 ; i < needToRun.length; i++ ){
-    //
-    //}
+/**
+ * Initializes the query batch to execute.
+ * @param  {Function} callback Callback to async with error or success
+ */
+var runQueries = function(callback){
+
+    output("Initializing queries...");
+
+
+    if(!program.cql) {
+        console.log("Applying incremental upgrades.");
+    }
+    // setting up Keyspace for cql and files.
+    batchQueries.unshift("USE " + program.keyspace + ";");
+
+    if(batchQueries && batchQueries.length > 0){
+        output("Running queries...");
+        executeQuery(batchQueries.shift(), callback);
+    }else{
+        callback("No queries to run.", null);
+    }
+};
+
+/**
+ * A recursive method, that executes each query.
+ * @param  {String} eQuery The cql string to be executed.
+ * @param  {Function} callback Callback to async with error or success
+ */
+var executeQuery = function(eQuery, callback){
+
+    output("Executing:\t\t" + eQuery);
+
+    Cassanova.execute(eQuery, function(err) {
+        if (err){
+            return callback(err, null);
+        } else {
+            if(batchQueries.length > 0){
+                executeQuery(batchQueries.shift(), callback);
+            }else{
+                callback(null, true);
+
+                process.nextTick(function(){
+                    process.exit(1);
+                });
+            }
+        }
+    });
 };
 
 /**
@@ -342,7 +385,6 @@ output("Initializing Migration...");
  * @param  {Function} callback Callback to async with error or success.
  */
 var processArguments = function(callback){
-debugger;
     output("Processing arguments...");
 
     if((!program.keyspace || program.keyspace.length === 0)){
@@ -374,11 +416,10 @@ async.series(
             startCassanova(callback);
         },
         function(callback){
-            validateMigrations(callback)
+            prepareMigrations(callback);
         },
         function(callback){
-            //runMigration(callback)
-            callback(false, true)
+            runQueries(callback);
         }
     ],
     function(err, callback){
