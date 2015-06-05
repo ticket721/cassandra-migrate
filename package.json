@@ -2,7 +2,10 @@
   "name": "cassandra-migrate",
   "version": "0.0.1",
   "description": "Cassandra migration for node.",
-  "main": "index.js",
+  "main": "./index",
+  "bin": {
+    "cassandra-migrate": "./bin/migrate"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/keswanikaran/cassandra-migrate.git"
@@ -33,7 +36,6 @@
     "config": "^1.13.0"
   },
   "devDependencies": {
-    "config": "^1.8.1",
     "grunt-mocha-istanbul": "2.2.0",
     "grunt-githooks": "0.3.1",
     "grunt": "0.4.5",

@@ -1,14 +1,19 @@
 var program = require("commander")
     , fs = require('fs')
-    , config = require('config')//todo : this seem to work directly from parent config.
     , exists = fs.existsSync || path.existsSync
     , Cassanova = require('cassanova')
     , async = require("async")
     , cwd
-    , migrationFiles
+    , needToRun =[]
     , migration_settings = require("../scripts/migrationSettings.json")
     , batchQueries = []
-    , filesRan;
+    , reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.cql$/i // regex to find migration files.
+    , cqlRegex = /-{0,}\s*<cql[^>]*>([\s\S]*?)-{0,}\s*<\/cql>/gmi
+    , upRegex = /-{0,}\s*<up[^>]*>([\s\S]*?)-{0,}\s*<\/up>/gmi
+    , downRegex = /-{0,}\s*<down[^>]*>([\s\S]*?)-{0,}\s*<\/down>/gmi
+    , migrationInsertQueries = []
+    , filesRan = []
+    , path = require('path');
 
 /**
  * Usage information.
@@ -40,10 +45,12 @@ program
     .version(JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8')).version)
     .option('-k, --keyspace "<keyspace>"', "The name of the keyspace to use.")
     .option('-c, --cql "<cqlStatement>"', "Run a single cql statement.")
+    .option('-n, --num "<migrationNumber>"', "Run migrations until migration Number.")
+    .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
+    .option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
     .option('-s, --silent', "Hide output while executing.", false)
-    .option('--production', "Overrides prevention of running against production. Don't do this unless you really, REALLY, mean it.", false)
 
-program.name = 'cassanova-migrate';
+program.name = 'cassandra-migrate';
 
 // init command
 
@@ -59,8 +66,6 @@ var createMigration = function(title){
     var files = fs.readdirSync(process.cwd()),
         migFiles = [],
         count,
-    // regex to find migration files.
-        reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.js$/i,
         reTitle = /^[a-z0-9]*$/i;
 
     if(!reTitle.test(title)){
@@ -74,8 +79,7 @@ var createMigration = function(title){
         }
     }
 
-
-    console.log(JSON.stringify(migFiles));
+    //console.log(JSON.stringify(migFiles));
 
     if(!migFiles.length){
         count = 1;
@@ -107,11 +111,27 @@ var createMigration = function(title){
         return yyyy + (mm[1]?mm:"0"+mm[0]) + (dd[1]?dd:"0"+dd[0]); // padding
     })(new Date());
 
-    var fileName = migCount + '_' + title + '_' + dateString + '.js'
-    console.log(fileName);
+    var fileName = migCount + '_' + title + '_' + dateString + '.cql'
 
-    fs.writeFileSync(process.cwd() + '/' + fileName, '//test Cassandra migrations');
+    fs.writeFileSync(process.cwd() + '/' + fileName,
+        "--<up>" + "\n"+
+        "    " + "--<cql>"+  "\n" +
+        "    " + "    " + "Your DDL statement here."+ "\n"+
+        "    " + "--</cql>"+ "\n"+
+        "    " + "--<cql>"+ "\n"+
+        "    " + "    " + "Your DDL statement here."+ "\n"+
+        "    " + "--</cql>"+ "\n"+
+        "--</up>"+ "\n"+
+        "--<down>"+ "\n"+
+        "    " + "--<cql>"+ "\n"+
+        "    " + "    " + "Your DDL statement here."+ "\n"+
+        "    " + "--</cql>"+ "\n"+
+        "    " + "--<cql>"+ "\n"+
+        "    " + "    " + "Your DDL statement here."+ "\n"+
+        "    " + "--</cql>"+ "\n"+
+        "--</down>");
 
+    console.log("Created a new migration file with name " + fileName);
     process.exit(0);
 
 };
@@ -135,6 +155,7 @@ var validateMigrations = function(callback){
 
     // If cql is passed just run the cql. Don't run migrations.
     if(program.cql){
+        batchQueries.push(program.cql.toString().trim());
         return callback(null, true);
     }
 
@@ -146,10 +167,10 @@ var validateMigrations = function(callback){
                 var query = migration_settings.getKeyspace.replace('<keyspace_name>', program.keyspace);
                 Cassanova.execute(query, function(err, response){
                     if(err){
-                        callback(err, false);
+                        return callback(err, false);
                     }
                     if(!response.length){
-                        callback("Mentioned keyspace with -k option does not exist");
+                        return callback("Mentioned keyspace with -k option does not exist in cassandra.");
                     }
                     callback(null);
                 });
@@ -160,7 +181,7 @@ var validateMigrations = function(callback){
                 var query = migration_settings.getColumnFamily.replace('<keyspace_name>', program.keyspace);
                 Cassanova.execute(query, function(err, response){
                     if(err){
-                        callback(err, false);
+                        return callback(err, false);
                     }
                     callback(null, response.length ? true: false);
                 });
@@ -172,7 +193,7 @@ var validateMigrations = function(callback){
                     var query = migration_settings.createMigrationTable.replace('<keyspace_name>', program.keyspace);
                     Cassanova.execute(query, function(err, response){
                         if(err){
-                            callback(err);
+                            return callback(err);
                         }
                         // Returning empty array in migration as
                         // none of migration script is run.
@@ -180,61 +201,102 @@ var validateMigrations = function(callback){
                     });
                 } else {
                     query = migration_settings.getMigration.replace('<keyspace_name>', program.keyspace);
-                    Cassanova.execute(query, function(err, response){
+                    Cassanova.execute(query, function(err, alreadyRanFiles){
                         if(err){
-                            callback(err);
+                            return callback(err);
                         }
-                        callback(null, response);
+                        callback(null, alreadyRanFiles);
                     });
                 }
+            },
+            /**
+             * This method takes alreadyRan files compares with available migrations on disk.
+             * If a particular migration is already run, it ignores them otherwise
+             * loads queries in batch queries.
+             *
+             * @param already ran files
+             * @param callback
+             * @returns {*}
+             */
+            function(alreadyRan, callback){
+
+                // Populating already run files.
+                for(var i=0; i < alreadyRan.length; i++){
+                    filesRan.push(alreadyRan[i].file_name);
+                }
+
+                // Looping through migration files and
+                // filtering what needs to run.
+                var files = fs.readdirSync(cwd);
+                for(var j = 0 ; j < files.length; j++){
+                    if(reFileName.test(files[j]) && files[j].indexOf(filesRan[j]) === -1){
+                        needToRun.push(files[j]);
+                    }
+                }
+
+                // Return if there are no migration to run.
+                if(!needToRun.length){
+                    return callback('No pending migration found.');
+                }
+
+                // Building queries to update
+                // table sys_cassanova_migrations
+                // todo : Need to change so that when -n is passed
+                // todo : it can delete or add conditionally.
+                var upResult;
+                for(var k = 0; k < needToRun.length ; k++){
+                    var attributes = needToRun[k].split("_"),
+                        title = attributes[1],
+                        migration_number = attributes[0] ;
+
+                    migrationInsertQueries.push(
+                        migration_settings.insertMigration
+                        .replace('<keyspace_name>', program.keyspace)
+                        .replace('<file_name>', path.basename(needToRun[k]))
+                        .replace('<created_at>', Date.now())
+                        .replace('<migration_number>', migration_number)
+                        .replace('<title>', title)
+                    );
+
+                    // Reading file.
+                    var file = fs.readFileSync(path.resolve(cwd + "/" + needToRun[k]));
+
+                    // Populating UP queries in case of no -n option.
+                    if(!program.num) {
+                        while ((upResult = upRegex.exec(file)) !== null) {
+                            var result;
+                            while ((result = cqlRegex.exec(upResult[1])) !== null) {
+                                batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
+                            }
+                        }
+                    } else{
+                        //todo
+                    }
+                }
+
+                console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
+                console.log('migrationInsertQueries :\n' + JSON.stringify(migrationInsertQueries, null, 2));
+
+                callback(null, false);
             }
         ],
         function(err, res){
             if(err){
-                callback(err);
+                if(err){
+                    callback(err);
+                }
             }
 
-            for(var i=0; i < res.length; i++){
-                filesRan.push(res[i].file_path);
-            }
-
-            migrationInsertQuery = migration_settings.insertMigration.replace('<keyspace_name>', program.keyspace);
             callback(null, true);
         }
     );
 };
 
-var processMigrationFile = function(filePath, callback){
-    var data,
-        extension,
-        k;
-
-    data = require(filePath);
-    for(k=0; k < data.length; k++){
-        filePath = data[k].file;
-        extension = path.extname(filePath).toLowerCase();
-        if(fs.existsSync(filePath)){
-            if(extension === ".json"){
-                processMigrationFile(filePath, callback);
-            }else if(extension === ".cql"){
-                // Add file only if it not already run.
-                if(filesRan.indexOf(path.basename(filePath)) === -1){
-                    // Convert into a array of Object so can keep track by name.
-                    file = fs.readFileSync(filePath);
-                    files.push(file);
-                    migrationBatch.push(
-                        migrationInsertQuery
-                            .replace('<file_path>', path.basename(data[k].file))
-                            .replace('<name>', data[k].name)
-                            .replace('<created_at>', Date.now())
-                            .replace('<description>', data[k].description)
-                    );
-                }
-            }
-        }else{
-            return callback("File does not exist, " + filePath, false);
-        }
-    }
+var runMigration = function(filePath, callback){
+    //var
+    //for(var i = 0 ; i < needToRun.length; i++ ){
+    //
+    //}
 };
 
 /**
@@ -247,10 +309,10 @@ var startCassanova = function(callback){
     output("Connecting to database...");
     //We need to be able to do anything with any keyspace. We just need a db connection. Just send
     //in the hosts, username and password, stripping the keyspace.
-    opts.username = process.env.CASS_USER || config.db.username;
-    opts.password = process.env.CASS_PASS || config.db.password;
-    opts.hosts = config.db.hosts;
-    opts.port = config.db.port;
+    //opts.username = process.env.CASS_USER || config.db.username;
+    //opts.password = process.env.CASS_PASS || config.db.password;
+    opts.hosts = program.hosts ? program.hosts : ["localhost"];
+    opts.port = program.port ? program.port : 9042;
 
     Cassanova.connect(opts, function(err, result){
         if(err){
@@ -273,24 +335,22 @@ var output = function(msg){
     }
 }
 
-output("Initializing CQL Runner...");
+output("Initializing Migration...");
 
 /**
  * Verifies the arguments are valid and have required arguments.
  * @param  {Function} callback Callback to async with error or success.
  */
 var processArguments = function(callback){
-
+debugger;
     output("Processing arguments...");
 
     if((!program.keyspace || program.keyspace.length === 0)){
         return callback("A keyspace has not been defined. Use -k option to define keyspace (check --help for more details).");
     }
-
-    // if program.cql is defined just run the cql.
-    if(program.cql){
-        batchQueries.push(program.cql.toString().trim());
-        return callback(null, true);
+    program.hosts = !program.hosts ? program.hosts : program.hosts.split(",");
+    if((program.hosts && program.hosts.length === 0) || (program.hosts && !(program.hosts instanceof Array))){
+        return callback("An invalid host is defined. Use --help to check proper usage.");
     }
 
     cwd = program.args[0] ? program.args[0] : process.cwd();
@@ -299,9 +359,7 @@ var processArguments = function(callback){
         return callback("The path " + cwd + " can't be resolved");
     }
 
-    if(!program.cql){
-        migrationFiles = fs.readDirSync(cwd);
-    }
+    // loading cql scripts
 
     callback(null, true);
 };
@@ -309,6 +367,7 @@ var processArguments = function(callback){
 async.series(
     [
         function(callback){
+            debugger;
             processArguments(callback);
         },
         function(callback){
@@ -318,7 +377,8 @@ async.series(
             validateMigrations(callback)
         },
         function(callback){
-            runScripts(callback)
+            //runMigration(callback)
+            callback(false, true)
         }
     ],
     function(err, callback){
@@ -326,7 +386,7 @@ async.series(
             console.log(err);
             process.exit(1);
         }else{
-            output("CQL Runner Complete!");
+            output("Migration Complete!");
             process.exit(0);
         }
     }
