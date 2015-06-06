@@ -1,10 +1,13 @@
+/*jslint node: true */
+"use strict";
+
 var program = require("commander"),
     fs = require('fs'),
     exists = fs.existsSync || path.existsSync,
     Cassanova = require('cassanova'),
     async = require("async"),
     cwd,
-    needToRun =[],
+    migFilesAvail = [],
     migration_settings = require("../scripts/migrationSettings.json"),
     batchQueries = [],
     reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.cql$/i, // regex to find migration files.,
@@ -215,7 +218,7 @@ var prepareMigrations = function(callback){
              * If a particular migration is already run, it ignores them otherwise
              * loads queries in batch queries.
              *
-             * @param already ran files
+             * @param alreadyRan files
              * @param callback
              * @returns {*}
              */
@@ -226,74 +229,132 @@ var prepareMigrations = function(callback){
                     filesRan.push(alreadyRan[i].file_name);
                 }
 
-                // Looping through migration files and
-                // filtering what needs to run.
-                var files = fs.readdirSync(cwd);
+                var files = fs.readdirSync(cwd),
+                    migAvail = [],
+                    migApplied = [],
+                    desiredMigration = program.num ? program.num : null;
 
-                var migrationsRan = [];
-                //for(var j = 0 ; j < files.length; j++){
-                //    if(reFileName.test(files[j]) && files[j].indexOf(filesRan[j]) === -1){
-                //        needToRun.push(files[j]);
-                //        migrationsRan.push(files[j].substr(0,4));
-                //    }
-                //}
+                //loop through all available files in current working directory.
                 for(var j = 0 ; j < files.length; j++){
+                    //filter migration files using regex.
                     if(reFileName.test(files[j])){
-                        if(files[j].indexOf(filesRan[j]) === -1){
-                            needToRun.push(files[j]);
+                        migAvail.push(files[j].substr(0,4));
+                        // Keeping list of only migration files for future reference.
+                        migFilesAvail.push(files[j]);
+                        //if migration file already ran push to migApplied.
+                        if(filesRan.indexOf(files[j]) !== -1){
+                            //needToRun.push(files[j]);
+                            migApplied.push(files[j].substr(0,4));
                         }
-                        
-                        migrationsRan.push(files[j].substr(0,4));
                     }
                 }
-                //Todo : should I do -n calc here
 
-                if(program.num){
-                    // todo Calculate what is already run migrationsRan
-                    // todo what needs to be run 
-                    //
+                if(desiredMigration && migAvail.indexOf(desiredMigration) === -1){
+                    return callback('Migration number ' + program.num + ' doesn\'t exist on disk');
                 }
+                debugger;
+                if(desiredMigration && (migApplied.indexOf(desiredMigration) + 1) < migApplied.length){
+                    // If user wants to go to an old migration in db.
+                    //todo : loop through migApplied.indexOf(desiredMigration) until
+                    //todo : migApplied.length and create down queries.
+                    (function revertMigration(){
+                        for(var k =  migApplied.indexOf(desiredMigration) + 1; k < migApplied.length ; k++){
+                            var downResult,
+                                fileName = migFilesAvail[migAvail.indexOf(migApplied[k])],
+                                fileContent;
 
-                // Return if there are no migration to run.
-                if(!needToRun.length){
-                    return callback('No incremental upgrades to run at this time.');
-                }
+                            migrationInsertQueries.push(
+                                migration_settings.deleteMigration
+                                    .replace('<keyspace_name>', program.keyspace)
+                                    .replace('<file_name>', path.basename(fileName))
+                            );
 
-                // Building queries to update
-                // table sys_cassanova_migrations
-                // todo : Need to change so that when -n is passed
-                // todo : it can delete or add conditionally.
-                var upResult;
-                for(var k = 0; k < needToRun.length ; k++){
-                    var attributes = needToRun[k].split("_"),
-                        title = attributes[1],
-                        migration_number = attributes[0] ;
+                            // Reading file.
+                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
 
-                    migrationInsertQueries.push(
-                        migration_settings.insertMigration
-                        .replace('<keyspace_name>', program.keyspace)
-                        .replace('<file_name>', path.basename(needToRun[k]))
-                        .replace('<created_at>', Date.now())
-                        .replace('<migration_number>', migration_number)
-                        .replace('<title>', title)
-                    );
-
-                    // Reading file.
-                    var file = fs.readFileSync(path.resolve(cwd + "/" + needToRun[k]));
-
-                    // Populating UP queries in case of no -n option.
-                    if(!program.num) {
-                        while ((upResult = upRegex.exec(file)) !== null) {
-                            var result;
-                            while ((result = cqlRegex.exec(upResult[1])) !== null) {
-                                batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
+                            while ((downResult = downRegex.exec(fileContent)) !== null) {
+                                var result;
+                                while ((result = cqlRegex.exec(downResult[1])) !== null) {
+                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
+                                }
                             }
                         }
-                    } else{
-                        //todo
-                    }
+                    })();
+
+                } else if(desiredMigration && migApplied.length && (migApplied.indexOf(desiredMigration) + 1) === migApplied.length){
+                    //If desiredMigration is applied as last migration. We do nothing.
+                    return callback('Migration number ' + desiredMigration + ' already applied');
+                } else if(desiredMigration && (migAvail.indexOf(desiredMigration)+1) < migAvail.length){
+                    //If desiredMigration is in mig Avail but is not everything available. # user wants to go to a future migration.
+                    // todo : loop through from last applied migration until
+                    // todo : migAvail.indexOf(desiredMigration) and create UP queries.
+                    (function getUpQueriesUntilMigration(){
+                        for(var k =  migApplied.length; k < migAvail.indexOf(desiredMigration) + 1 ; k++){
+                            var fileName = migFilesAvail[migAvail.indexOf(migAvail[k])],
+                                attributes = fileName.split("_"),
+                                title = attributes[1],
+                                migration_number = attributes[0],
+                                fileContent,
+                                upResult;
+
+                            migrationInsertQueries.push(
+                                migration_settings.insertMigration
+                                    .replace('<keyspace_name>', program.keyspace)
+                                    .replace('<file_name>', path.basename(fileName))
+                                    .replace('<created_at>', Date.now())
+                                    .replace('<migration_number>', migration_number)
+                                    .replace('<title>', title)
+                            );
+
+                            // Reading file.
+                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
+
+                            while ((upResult = upRegex.exec(fileContent)) !== null) {
+                                var result;
+                                while ((result = cqlRegex.exec(upResult[1])) !== null) {
+                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
+                                }
+                            }
+                        }
+                    })();
+                } else {
+                    (function getUpQueriesUntilEnd(){
+                        for(var k = migApplied.length; k < migAvail.length ; k++){
+                            // if it is first migration start with first.
+                            var fileName = migFilesAvail[k],
+                                attributes = fileName.split("_"),
+                                title = attributes[1],
+                                migration_number = attributes[0],
+                                fileContent,
+                                upResult;
+
+                            migrationInsertQueries.push(
+                                migration_settings.insertMigration
+                                    .replace('<keyspace_name>', program.keyspace)
+                                    .replace('<file_name>', path.basename(fileName))
+                                    .replace('<created_at>', Date.now())
+                                    .replace('<migration_number>', migration_number)
+                                    .replace('<title>', title)
+                            );
+
+                            // Reading file.
+                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
+
+                            while ((upResult = upRegex.exec(fileContent)) !== null) {
+                                var result;
+                                while ((result = cqlRegex.exec(upResult[1])) !== null) {
+                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
+                                }
+                            }
+                        }
+                    })();
                 }
 
+
+                // Return if there are no migration to run.
+                if(!batchQueries.length){
+                    return callback('No incremental upgrades to run at this time.');
+                }
                 //console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
                 //console.log('migrationInsertQueries :\n' + JSON.stringify(migrationInsertQueries, null, 2));
                 batchQueries.splice.apply(batchQueries, [batchQueries.length, 0].concat(migrationInsertQueries));
