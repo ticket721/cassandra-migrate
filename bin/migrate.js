@@ -253,11 +253,11 @@ var prepareMigrations = function(callback){
                     return callback('Migration number ' + program.num + ' doesn\'t exist on disk');
                 }
                 debugger;
-                if(desiredMigration && (migApplied.indexOf(desiredMigration) + 1) < migApplied.length){
-                    // If user wants to go to an old migration in db.
-                    //todo : loop through migApplied.indexOf(desiredMigration) until
-                    //todo : migApplied.length and create down queries.
+                if(desiredMigration && migApplied.indexOf(desiredMigration) !== -1 && (migApplied.indexOf(desiredMigration) + 1) < migApplied.length){
+                    // If user wants to go to an old migration in db. Migration mentioned has to be in migApplied
+                    // and should be less than migrationApplied.length.
                     (function revertMigration(){
+                        // Create down queries from desired migration to end of migrationApplied.
                         for(var k =  migApplied.indexOf(desiredMigration) + 1; k < migApplied.length ; k++){
                             var downResult,
                                 fileName = migFilesAvail[migAvail.indexOf(migApplied[k])],
@@ -285,10 +285,9 @@ var prepareMigrations = function(callback){
                     //If desiredMigration is applied as last migration. We do nothing.
                     return callback('Migration number ' + desiredMigration + ' already applied');
                 } else if(desiredMigration && (migAvail.indexOf(desiredMigration)+1) < migAvail.length){
-                    //If desiredMigration is in mig Avail but is not everything available. # user wants to go to a future migration.
-                    // todo : loop through from last applied migration until
-                    // todo : migAvail.indexOf(desiredMigration) and create UP queries.
+                    //If desiredMigration is in migAvail but is not all the way to end migration.
                     (function getUpQueriesUntilMigration(){
+
                         for(var k =  migApplied.length; k < migAvail.indexOf(desiredMigration) + 1 ; k++){
                             var fileName = migFilesAvail[migAvail.indexOf(migAvail[k])],
                                 attributes = fileName.split("_"),
@@ -318,6 +317,7 @@ var prepareMigrations = function(callback){
                         }
                     })();
                 } else {
+                    // Only
                     (function getUpQueriesUntilEnd(){
                         for(var k = migApplied.length; k < migAvail.length ; k++){
                             // if it is first migration start with first.
