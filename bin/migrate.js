@@ -252,7 +252,7 @@ var prepareMigrations = function(callback){
                 if(desiredMigration && migAvail.indexOf(desiredMigration) === -1){
                     return callback('Migration number ' + program.num + ' doesn\'t exist on disk');
                 }
-                debugger;
+
                 if(desiredMigration && migApplied.indexOf(desiredMigration) !== -1 && (migApplied.indexOf(desiredMigration) + 1) < migApplied.length){
                     // If user wants to go to an old migration in db. Migration mentioned has to be in migApplied
                     // and should be less than migrationApplied.length.
@@ -284,11 +284,20 @@ var prepareMigrations = function(callback){
                 } else if(desiredMigration && migApplied.length && (migApplied.indexOf(desiredMigration) + 1) === migApplied.length){
                     //If desiredMigration is applied as last migration. We do nothing.
                     return callback('Migration number ' + desiredMigration + ' already applied');
-                } else if(desiredMigration && (migAvail.indexOf(desiredMigration)+1) < migAvail.length){
-                    //If desiredMigration is in migAvail but is not all the way to end migration.
-                    (function getUpQueriesUntilMigration(){
+                } else {
 
-                        for(var k =  migApplied.length; k < migAvail.indexOf(desiredMigration) + 1 ; k++){
+                    (function getUpQueriesUntilMigration(){
+                        var migrationFrom = migApplied.length,
+                            migrationTo;
+
+                        //If desired todo
+                        if(desiredMigration && (migAvail.indexOf(desiredMigration)+1) < migAvail.length){
+                            migrationTo = migAvail.indexOf(desiredMigration) + 1;
+                        } else {
+                            migrationTo = migAvail.length;
+                        }
+
+                        for(var k =  migrationFrom; k < migrationTo ; k++){
                             var fileName = migFilesAvail[migAvail.indexOf(migAvail[k])],
                                 attributes = fileName.split("_"),
                                 title = attributes[1],
@@ -316,40 +325,7 @@ var prepareMigrations = function(callback){
                             }
                         }
                     })();
-                } else {
-                    // Only
-                    (function getUpQueriesUntilEnd(){
-                        for(var k = migApplied.length; k < migAvail.length ; k++){
-                            // if it is first migration start with first.
-                            var fileName = migFilesAvail[k],
-                                attributes = fileName.split("_"),
-                                title = attributes[1],
-                                migration_number = attributes[0],
-                                fileContent,
-                                upResult;
-
-                            migrationInsertQueries.push(
-                                migration_settings.insertMigration
-                                    .replace('<keyspace_name>', program.keyspace)
-                                    .replace('<file_name>', path.basename(fileName))
-                                    .replace('<created_at>', Date.now())
-                                    .replace('<migration_number>', migration_number)
-                                    .replace('<title>', title)
-                            );
-
-                            // Reading file.
-                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
-
-                            while ((upResult = upRegex.exec(fileContent)) !== null) {
-                                var result;
-                                while ((result = cqlRegex.exec(upResult[1])) !== null) {
-                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
-                                }
-                            }
-                        }
-                    })();
                 }
-
 
                 // Return if there are no migration to run.
                 if(!batchQueries.length){

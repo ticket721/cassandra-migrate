@@ -1,6 +1,6 @@
 --<up>
     --<cql>
-        CREATE TABLE IF NOT EXISTS user_activity (
+        CREATE TABLE IF NOT EXISTS user_activity_2 (
             userid TIMEUUID,
             activity TEXT,
             PRIMARY KEY (userid)
@@ -9,6 +9,6 @@
 --</up>
 --<down>
     --<cql>
-        DROP TABLE user_activity;
+        DROP TABLE user_activity_2;
     --</cql>
 --</down>

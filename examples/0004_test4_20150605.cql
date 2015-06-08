@@ -1,6 +1,6 @@
 --<up>
     --<cql>
-        CREATE TABLE IF NOT EXISTS user_by_facebook (
+        CREATE TABLE IF NOT EXISTS user_by_facebook_4 (
              email TEXT,
              facebook_id TEXT,
              userid TIMEUUID,
@@ -11,6 +11,6 @@
 --</up>
 --<down>
     --<cql>
-        DROP TABLE user_by_facebook;
+        DROP TABLE user_by_facebook_4;
     --</cql>
 --</down>

@@ -1,6 +1,6 @@
 --<up>
     --<cql>
-        CREATE TABLE IF NOT EXISTS user_by_email (
+        CREATE TABLE IF NOT EXISTS user_by_email_1 (
              email TEXT,
              alternate_email MAP<TEXT, TEXT>,
              userid TIMEUUID,
@@ -9,7 +9,7 @@
         );
     --</cql>
     --<cql>
-        CREATE TABLE IF NOT EXISTS user_by_id (
+        CREATE TABLE IF NOT EXISTS user_by_id_1 (
              userid TIMEUUID,
              email TEXT,
              alternate_email MAP<TEXT, TEXT>,
@@ -20,9 +20,9 @@
 --</up>
 --<down>
     --<cql>
-        DROP TABLE user_by_email;
+        DROP TABLE user_by_email_1;
     --</cql>
     --<cql>
-        DROP TABLE user_by_id;
+        DROP TABLE user_by_id_1;
     --</cql>
 --</down>
