@@ -62,13 +62,13 @@ Runs a cql command.
 Define host and port number. By default connects to [localhost] and default cassandra port [9042].
 
 ```
-    cassanova-migrate -h [10.10.10.1] -p 9252"
+    cassanova-migrate -h [10.10.10.1] -p 9252
 ```
 
 More help.
 
 ```
-    cassanova-migrate --help"
+    cassanova-migrate --help
 ```
 
 ## License
