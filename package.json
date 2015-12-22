@@ -2,9 +2,9 @@
   "name": "cassanova-migrate",
   "version": "0.1.0",
   "description": "Cassandra migration for node.",
-  "main": "./index",
+  "main": "./index.js",
   "bin": {
-    "cassanova-migrate": "./bin/migrate"
+    "cassanova-migrate": "./bin/migrate.js"
   },
   "repository": {
     "type": "git",
