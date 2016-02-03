@@ -51,7 +51,9 @@ program
     .option('-n, --num "<migrationNumber>"', "Run migrations until migration Number.")
     .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
     .option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
-    .option('-s, --silent', "Hide output while executing.", false);
+    .option('-s, --silent', "Hide output while executing.", false)
+    .option('-u, --username "<username>"', "database username")
+    .option('-P, --password "<password>"', "database password");
 
 program.name = 'cassanova-migrate';
 
@@ -411,6 +413,12 @@ var startCassanova = function(callback){
     //in the hosts, username and password, stripping the keyspace.
     //opts.username = process.env.CASS_USER || config.db.username;
     //opts.password = process.env.CASS_PASS || config.db.password;
+    if(program.username){
+      opts.username = program.username;
+    }
+    if(program.password){
+      opts.password = program.password;
+    }
     opts.hosts = program.hosts ? program.hosts : ["localhost"];
     opts.port = program.port ? program.port : 9042;
 
