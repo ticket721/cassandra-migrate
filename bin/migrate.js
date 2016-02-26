@@ -52,7 +52,7 @@ program
     //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
     .option('-s, --silent', "Hide output while executing.", false)
     .option('-u, --username "<username>"', "database username")
-    .option('-P, --password "<password>"', "database password");
+    .option('-p, --password "<password>"', "database password");
 
 program.name = 'cassanova-migrate';
 
