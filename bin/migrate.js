@@ -4,17 +4,16 @@
 var program = require("commander"),
     fs = require('fs'),
     exists = fs.existsSync || path.existsSync,
-    Cassanova = require('cassanova'),
+    Database = require('../config/database'),
+    db,
     async = require("async"),
     cwd,
     migFilesAvail = [],
     migration_settings = require("../scripts/migrationSettings.json"),
     batchQueries = [],
-    reFileName = /^[0-9]{4}_[a-z0-9]*_\d{8}.cql$/i, // regex to find migration files.,
-    cqlRegex = /-{0,}\s*<cql[^>]*>([\s\S]*?)-{0,}\s*<\/cql>/gmi,
-    upRegex = /-{0,}\s*<up[^>]*>([\s\S]*?)-{0,}\s*<\/up>/gmi,
-    downRegex = /-{0,}\s*<down[^>]*>([\s\S]*?)-{0,}\s*<\/down>/gmi,
-    migrationInsertQueries = [],
+    upQueries = [],
+    downQueries = [],
+    reFileName = /^[0-9]{10}_[a-z0-9]*.js$/i, // regex to find migration files.,
     filesRan = [],
     path = require('path');
 
@@ -50,7 +49,7 @@ program
     .option('-c, --cql "<cqlStatement>"', "Run a single cql statement.")
     .option('-n, --num "<migrationNumber>"', "Run migrations until migration Number.")
     .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
-    .option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
+    //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
     .option('-s, --silent', "Hide output while executing.", false)
     .option('-u, --username "<username>"', "database username")
     .option('-P, --password "<password>"', "database password");
@@ -143,11 +142,13 @@ var createMigration = function(title){
 */
 
     fs.writeFileSync(`${process.cwd()}/${fileName}`,
-`var migration${dateString} = function(db){
-    var up = function (handler) {
-    };
-    var down = function (handler) {
-    };
+`var migration${dateString} = {
+    up : function (db, handler) {
+
+    },
+    down : function (db, handler) {
+
+    }
 };
 module.exports = migration${dateString};`
     );
@@ -181,29 +182,14 @@ var prepareMigrations = function(callback){
 
     async.waterfall(
         [
-            //check if program.keyspace exists in database.
-            function(callback){
-
-                var query = migration_settings.getKeyspace.replace('<keyspace_name>', program.keyspace);
-                Cassanova.execute(query, function(err, response){
-                    if(err){
-                        return callback(err, false);
-                    }
-                    if(!response.length){
-                        return callback("Mentioned keyspace with -k option does not exist in cassandra.");
-                    }
-                    callback(null);
-                });
-            },
             //check if migration table exists.
             function(callback){
                 //Check if migration table exists in defined (-k) keyspace.
-                var query = migration_settings.getColumnFamily.replace('<keyspace_name>', program.keyspace);
-                Cassanova.execute(query, function(err, response){
+                db.execute(migration_settings.getColumnFamily, [program.keyspace], {prepare: true}, function(err, response){
                     if(err){
                         return callback(err, false);
                     }
-                    callback(null, response.length ? true: false);
+                    callback(null, response.rows.length ? true: false);
                 });
             },
             function(migrationExists, callback){
@@ -211,8 +197,7 @@ var prepareMigrations = function(callback){
                 // return data otherwise.
                 var query;
                 if(!migrationExists){
-                    query = migration_settings.createMigrationTable.replace('<keyspace_name>', program.keyspace);
-                    Cassanova.execute(query, function(err, response){
+                    db.execute(migration_settings.createMigrationTable, null, {prepare: true}, function(err, response){
                         if(err){
                             return callback(err);
                         }
@@ -221,12 +206,11 @@ var prepareMigrations = function(callback){
                         callback(null, []);
                     });
                 } else {
-                    query = migration_settings.getMigration.replace('<keyspace_name>', program.keyspace);
-                    Cassanova.execute(query, function(err, alreadyRanFiles){
+                    db.execute(migration_settings.getMigration, null, {prepare:true}, function(err, alreadyRanFiles){
                         if(err){
                             return callback(err);
                         }
-                        callback(null, alreadyRanFiles);
+                        callback(null, alreadyRanFiles.rows);
                     });
                 }
             },
@@ -245,27 +229,24 @@ var prepareMigrations = function(callback){
                 for(var i=0; i < alreadyRan.length; i++){
                     filesRan.push(alreadyRan[i].file_name);
                 }
-
                 var files = fs.readdirSync(cwd),
                     migAvail = [],
                     migApplied = [],
                     desiredMigration = program.num ? program.num : null;
-
                 //loop through all available files in current working directory.
                 for(var j = 0 ; j < files.length; j++){
                     //filter migration files using regex.
                     if(reFileName.test(files[j])){
-                        migAvail.push(files[j].substr(0,4));
+                        migAvail.push(files[j].substr(0,10));
                         // Keeping list of only migration files for future reference.
                         migFilesAvail.push(files[j]);
                         //if migration file already ran push to migApplied.
                         if(filesRan.indexOf(files[j]) !== -1){
                             //needToRun.push(files[j]);
-                            migApplied.push(files[j].substr(0,4));
+                            migApplied.push(files[j].substr(0,10));
                         }
                     }
                 }
-
                 if(desiredMigration && migAvail.indexOf(desiredMigration) === -1){
                     return callback('Migration number ' + program.num + ' doesn\'t exist on disk');
                 }
@@ -278,23 +259,12 @@ var prepareMigrations = function(callback){
                         for(var k =  migApplied.indexOf(desiredMigration) + 1; k < migApplied.length ; k++){
                             var downResult,
                                 fileName = migFilesAvail[migAvail.indexOf(migApplied[k])],
-                                fileContent;
+                                attributes = fileName.split("_"),
+                                query = {'file':fileName, 'num':attributes[0], 'name':attributes[1].replace(".js",""),
+                                    run:require(path.resolve(cwd+"/"+fileName)) };
 
-                            migrationInsertQueries.push(
-                                migration_settings.deleteMigration
-                                    .replace('<keyspace_name>', program.keyspace)
-                                    .replace('<file_name>', path.basename(fileName))
-                            );
+                            downQueries.push(query);
 
-                            // Reading file.
-                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
-
-                            while ((downResult = downRegex.exec(fileContent)) !== null) {
-                                var result;
-                                while ((result = cqlRegex.exec(downResult[1])) !== null) {
-                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
-                                }
-                            }
                         }
                     })();
 
@@ -317,40 +287,21 @@ var prepareMigrations = function(callback){
                         for(var k =  migrationFrom; k < migrationTo ; k++){
                             var fileName = migFilesAvail[migAvail.indexOf(migAvail[k])],
                                 attributes = fileName.split("_"),
-                                title = attributes[1],
-                                migration_number = attributes[0],
-                                fileContent,
-                                upResult;
+                                query = {'file':fileName,'num':attributes[0], 'name':attributes[1].replace(".js",""),
+                                    'run':require(path.resolve(cwd+"/"+fileName)) };
+                                upQueries.push(query);
 
-                            migrationInsertQueries.push(
-                                migration_settings.insertMigration
-                                    .replace('<keyspace_name>', program.keyspace)
-                                    .replace('<file_name>', path.basename(fileName))
-                                    .replace('<created_at>', Date.now())
-                                    .replace('<migration_number>', migration_number)
-                                    .replace('<title>', title)
-                            );
-
-                            // Reading file.
-                            fileContent = fs.readFileSync(path.resolve(cwd + "/" + fileName));
-
-                            while ((upResult = upRegex.exec(fileContent)) !== null) {
-                                var result;
-                                while ((result = cqlRegex.exec(upResult[1])) !== null) {
-                                    batchQueries.push(result[1].replace(/\s+/g, ' ').trim());
-                                }
-                            }
                         }
                     })();
                 }
 
                 // Return if there are no migration to run.
-                if(!batchQueries.length){
+                if(!upQueries.length && !downQueries.length){
                     return callback('No incremental upgrades to run at this time.');
                 }
                 //console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
                 //console.log('migrationInsertQueries :\n' + JSON.stringify(migrationInsertQueries, null, 2));
-                batchQueries.splice.apply(batchQueries, [batchQueries.length, 0].concat(migrationInsertQueries));
+                //batchQueries.splice.apply(batchQueries, [batchQueries.length, 0].concat(migrationInsertQueries));
                 //console.log('batchQueries : \n' + JSON.stringify(batchQueries, null, 2));
                 callback(null, false);
             }
@@ -379,16 +330,70 @@ var runQueries = function(callback){
     if(!program.cql) {
         console.log("Applying incremental upgrades.");
     }
-    // setting up Keyspace for cql and files.
-    batchQueries.unshift("USE " + program.keyspace + ";");
 
     if(batchQueries && batchQueries.length > 0){
+        // setting up Keyspace for cql and files.
+        batchQueries.unshift("USE " + program.keyspace + ";");
         output("Running queries...");
         executeQuery(batchQueries.shift(), callback);
+    }else if(upQueries && upQueries.length > 0){
+        up(upQueries.shift(), callback);
+    }else if(downQueries && downQueries.length > 0){
+        down(downQueries.shift(), callback);
     }else{
-        callback("No queries to run.", null);
+        console.log("No migrations to run")
     }
 };
+
+var up = function (query, callback){
+    output(`Migrating changes: ${query.name}`);
+    query.run.up(db,function(err){
+       if (err){
+           return callback(err, null);
+       } else {
+           db.execute(migration_settings.insertMigration,[query.file, Date.now(), query.num, query.name],
+               {prepare: true}, function(err){
+               if(err) {
+                   return callback(err, null);
+               }else{
+                   if(upQueries.length > 0 ){
+                       up(upQueries.shift(), callback);
+                   }else{
+                       callback(null, true);
+                       process.nextTick(function(){
+                           process.exit(1);
+                       });
+                   }
+               }
+           });
+       }
+    });
+};
+
+var down = function (query, callback){
+    query.run.down(db,function(err){
+        output(`Rolling back changes: ${query.name}`);
+        if (err){
+            return callback(err, null);
+        } else {
+            db.execute(migration_settings.deleteMigration,[query.file], {prepare: true}, function(err){
+                if(err) {
+                    return callback(err, null);
+                }else{
+                    if(downQueries.length > 0 ){
+                        up(downQueries.shift(), callback);
+                    }else{
+                        callback(null, true);
+                        process.nextTick(function(){
+                            process.exit(1);
+                        });
+                    }
+                }
+            });
+        }
+    });
+};
+
 
 /**
  * A recursive method, that executes each query.
@@ -399,7 +404,7 @@ var executeQuery = function(eQuery, callback){
 
     output("Executing:\t\t" + eQuery);
 
-    Cassanova.execute(eQuery, function(err) {
+    db.execute(eQuery, function(err) {
         if (err){
             return callback(err, null);
         } else {
@@ -417,11 +422,11 @@ var executeQuery = function(eQuery, callback){
 };
 
 /**
- * Starts Cassanova.
+ * Starts db.
  * @param  {Function} callback Callback to async with error or success
  */
-var startCassanova = function(callback){
-    var opts = {};
+var dbConnect = function(callback){
+    var settings = {};
 
     output("Connecting to database...");
     //We need to be able to do anything with any keyspace. We just need a db connection. Just send
@@ -429,22 +434,15 @@ var startCassanova = function(callback){
     //opts.username = process.env.CASS_USER || config.db.username;
     //opts.password = process.env.CASS_PASS || config.db.password;
     if(program.username){
-      opts.username = program.username;
+      settings.username = program.username;
     }
     if(program.password){
-      opts.password = program.password;
+      settings.password = program.password;
     }
-    opts.hosts = program.hosts ? program.hosts : ["localhost"];
-    opts.port = program.port ? program.port : 9042;
-
-    Cassanova.connect(opts, function(err, result){
-        if(err){
-            //err.username = opts.username;
-            //err.password = opts.password;
-            err.hosts = opts.hosts;
-        }
-        callback(err, result);
-    });
+    settings.hosts = program.hosts ? program.hosts : ["localhost"];
+    settings.keyspace = program.keyspace ? program.keyspace : process.env.DBKEYSPACE;
+    db = new Database(settings);
+    callback(null, true);
 };
 
 /**
@@ -492,7 +490,7 @@ async.series(
             processArguments(callback);
         },
         function(callback){
-            startCassanova(callback);
+            dbConnect(callback);
         },
         function(callback){
             prepareMigrations(callback);

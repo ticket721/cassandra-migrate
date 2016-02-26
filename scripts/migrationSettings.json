@@ -1,8 +1,8 @@
 {
-    "getKeyspace": "SELECT keyspace_name FROM system.schema_keyspaces WHERE keyspace_name='<keyspace_name>';",
-    "getColumnFamily": "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name='<keyspace_name>' and columnfamily_name = 'sys_cassanova_migrations';",
-    "createMigrationTable": "CREATE TABLE <keyspace_name>.sys_cassanova_migrations(file_name TEXT, created_at TIMESTAMP, migration_number TEXT, title TEXT, PRIMARY KEY (file_name, created_at));",
-    "getMigration": "SELECT * from <keyspace_name>.sys_cassanova_migrations;",
-    "insertMigration": "INSERT INTO <keyspace_name>.sys_cassanova_migrations(file_name, created_at, migration_number, title) values('<file_name>', <created_at>, '<migration_number>', '<title>');",
-    "deleteMigration": "DELETE FROM <keyspace_name>.sys_cassanova_migrations where file_name='<file_name>';"
+    "getKeyspace": "SELECT keyspace_name FROM system.schema_keyspaces WHERE keyspace_name=?;",
+    "getColumnFamily": "SELECT columnfamily_name FROM system.schema_columnfamilies WHERE keyspace_name=? and columnfamily_name = 'sys_cassanova_migrations';",
+    "createMigrationTable": "CREATE TABLE sys_cassanova_migrations(file_name TEXT, created_at TIMESTAMP, migration_number TEXT, title TEXT, PRIMARY KEY (file_name, created_at));",
+    "getMigration": "SELECT * from sys_cassanova_migrations;",
+    "insertMigration": "INSERT INTO sys_cassanova_migrations(file_name, created_at, migration_number, title) values(?, ?, ?, ?);",
+    "deleteMigration": "DELETE FROM sys_cassanova_migrations where file_name=?;"
 }
