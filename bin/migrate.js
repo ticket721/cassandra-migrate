@@ -76,70 +76,11 @@ var createMigration = function(title){
         console.log('Invalid title. Only alphanumeric title is accepted.');
         process.exit(1);
     }
-/*
-
-    for(var i = 0 ; i < files.length; i++){
-        if(reFileName.test(files[i])){
-            migFiles.push(Number(files[i].substr(0,4)));
-        }
-    }
-
-    //console.log(JSON.stringify(migFiles));
-
-    if(!migFiles.length){
-        count = 1;
-    }else {
-        migFiles.sort(function(a,b){
-            if(a > b){
-                return 1;
-            }
-            if(a < b){
-                return -1;
-            }
-            // a must be equal to b
-            return 0;
-        });
-        count = (migFiles[migFiles.length - 1]) + 1;
-    }
-
-
-    var migCount = (function(str, padString, length) {
-        while (str.length < length)
-            str = padString + str;
-        return str;
-    })(count.toString(), '0', 4);
-*/
 
     var dateString = Math.floor(Date.now() / 1000) + '';
 
-    /*(function(d) {
-        var yyyy = d.getFullYear().toString();
-        var mm = (d.getMonth()+1).toString(); // getMonth() is zero-based
-        var dd  = d.getDate().toString();
-        return yyyy + (mm[1]?mm:"0"+mm[0]) + (dd[1]?dd:"0"+dd[0]); // padding
-    })(new Date());*/
-
     var fileName = dateString + '_' + title + '.js';
 
-/*
-    fs.writeFileSync(process.cwd() + '/' + fileName,
-        "--<up>" + "\n"+
-        "    " + "--<cql>"+  "\n" +
-        "    " + "    " + "Your DDL statement here."+ "\n"+
-        "    " + "--</cql>"+ "\n"+
-        "    " + "--<cql>"+ "\n"+
-        "    " + "    " + "Your DDL statement here."+ "\n"+
-        "    " + "--</cql>"+ "\n"+
-        "--</up>"+ "\n"+
-        "--<down>"+ "\n"+
-        "    " + "--<cql>"+ "\n"+
-        "    " + "    " + "Your DDL statement here."+ "\n"+
-        "    " + "--</cql>"+ "\n"+
-        "    " + "--<cql>"+ "\n"+
-        "    " + "    " + "Your DDL statement here."+ "\n"+
-        "    " + "--</cql>"+ "\n"+
-        "--</down>");
-*/
 
     fs.writeFileSync(`${process.cwd()}/${fileName}`,
 `var migration${dateString} = {
