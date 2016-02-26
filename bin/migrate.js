@@ -77,6 +77,7 @@ var createMigration = function(title){
         console.log('Invalid title. Only alphanumeric title is accepted.');
         process.exit(1);
     }
+/*
 
     for(var i = 0 ; i < files.length; i++){
         if(reFileName.test(files[i])){
@@ -108,16 +109,20 @@ var createMigration = function(title){
             str = padString + str;
         return str;
     })(count.toString(), '0', 4);
+*/
 
-    var dateString = (function(d) {
+    var dateString = Math.floor(Date.now() / 1000) + '';
+
+    /*(function(d) {
         var yyyy = d.getFullYear().toString();
         var mm = (d.getMonth()+1).toString(); // getMonth() is zero-based
         var dd  = d.getDate().toString();
         return yyyy + (mm[1]?mm:"0"+mm[0]) + (dd[1]?dd:"0"+dd[0]); // padding
-    })(new Date());
+    })(new Date());*/
 
-    var fileName = migCount + '_' + title + '_' + dateString + '.cql';
+    var fileName = dateString + '_' + title + '.js';
 
+/*
     fs.writeFileSync(process.cwd() + '/' + fileName,
         "--<up>" + "\n"+
         "    " + "--<cql>"+  "\n" +
@@ -135,7 +140,17 @@ var createMigration = function(title){
         "    " + "    " + "Your DDL statement here."+ "\n"+
         "    " + "--</cql>"+ "\n"+
         "--</down>");
+*/
 
+    fs.writeFileSync(`${process.cwd()}/${fileName}`,
+`var migration${dateString} = function(db){
+    var up = function (handler) {
+    };
+    var down = function (handler) {
+    };
+};
+module.exports = migration${dateString};`
+    );
     console.log("Created a new migration file with name " + fileName);
     process.exit(0);
 
