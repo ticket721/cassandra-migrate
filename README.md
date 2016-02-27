@@ -11,7 +11,7 @@ Cassandra-migrate is a incremental migration tool for Cassandra.
 
 ## Installation
 
-Install [node.js](http://nodejs.org/) and [cassandra](http://cassandra.apache.org/) and [cassandra](https://www.npmjs.com/package/cassandra). Then:
+Install [node.js](http://nodejs.org/) and [cassandra](http://cassandra.apache.org/) and [cassandra-driver](https://www.npmjs.com/package/cassandra-driver). Then:
 
 ```
 npm install cassandra-migrate
@@ -79,4 +79,4 @@ cassandra-migrate is distributed under the [MIT license](http://opensource.org/l
 
 Feel free to join in and support the project!
 
-Check the [Issue tracker](https://github.com/keswanikaran/cassandra-migrate/issues)
+Check the [Issue tracker](https://github.com/rleenders/cassandra-migrate/issues)
