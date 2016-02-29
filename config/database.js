@@ -9,11 +9,11 @@ class Database {
             keyspace: settings.keyspace
         }
 
-        var user = settings.user;
+        var username = settings.username;
         var password = settings.password;
 
-        if (user && password) {
-            this.driverOptions.authProvider = new cassandra.auth.PlainTextAuthProvider(user, password);
+        if (username && password) {
+            this.driverOptions.authProvider = new cassandra.auth.PlainTextAuthProvider(username, password);
         }
 
         var client = new cassandra.Client(this.driverOptions);
