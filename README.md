@@ -3,7 +3,7 @@
 Cassandra-migrate is a incremental migration tool for Cassandra.
 
 ## Features
-- Uses Cassandra to run incremental migrations on Cassandra database.
+- Uses the node cassandra-driver  to run incremental migrations on Cassandra database.
 - Uses Cassandra keyspace mentioned in commandline to keep track of ran migrations.
 - Automatically builds and run UP or DOWN until any migration number.
 - Creates a new incremental migration template by a single command. 
@@ -59,10 +59,10 @@ Runs a cql command.
     cassandra-migrate -k <keyspace> -c "<cql-script>"
 ```
 
-Define host and port number. By default connects to [localhost] and default cassandra port [9042].
+Define host, username, and password. By default connects to [localhost] and default cassandra port [9042].
 
 ```
-    cassandra-migrate -h [10.10.10.1] -p 9252
+    cassandra-migrate -h [10.10.10.1] -u username -p password
 ```
 
 More help.

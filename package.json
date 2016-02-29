@@ -1,6 +1,6 @@
 {
   "name": "cassandra-migrate",
-  "version": "0.1.1",
+  "version": "0.1.22",
   "description": "Cassandra migration for node.",
   "main": "./index.js",
   "bin": {
