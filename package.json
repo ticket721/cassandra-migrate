@@ -1,6 +1,6 @@
 {
   "name": "cassandra-migrate",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "description": "Cassandra migration for node.",
   "main": "./index.js",
   "bin": {
@@ -40,6 +40,5 @@
     "grunt-contrib-jshint": "0.10.0"
   },
   "scripts": {
-
   }
 }
