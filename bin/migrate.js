@@ -14,7 +14,7 @@ var program = require("commander"),
   batchQueries = [],
   upQueries = [],
   downQueries = [],
-  reFileName = /^[0-9]{10}_[a-z0-9]*.js$/i, // regex to find migration files.,
+  reFileName = /^[0-9]{10}_[a-z0-9\_]*.js$/i, // regex to find migration files.,
   filesRan = [],
   path = require('path');
 
