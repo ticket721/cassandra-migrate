@@ -36,7 +36,10 @@ var usage = [
   '  cassanova-migrate <create>. (Creates a new cassandra migration)',
   '',
   '  cassanova-migrate -k <keyspace> -s',
-  ''
+  '',
+  '  cassanova-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
+  '',
+
 ].join('\n');
 
 program.on('--help', function () {
@@ -52,7 +55,8 @@ program
   //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
   .option('-s, --silent', "Hide output while executing.", false)
   .option('-u, --username "<username>"', "database username")
-  .option('-p, --password "<password>"', "database password");
+  .option('-p, --password "<password>"', "database password")
+  .option('-t, --template "<template>"', "sets the template for create");
 
 program.name = 'cassanova-migrate';
 
@@ -81,34 +85,38 @@ var createMigration = function (title) {
 
   var fileName = dateString + '_' + title + '.js';
 
+  var template = `
+    var migration${dateString} = {
+      up : function (db, handler) {
+          var query = '';
+          var params = [];
+          db.execute(query, params, { prsepare: true }, function (err) {
+              if (err) {
+                  handler(err, false);
+              } else {
+                  handler(false, true);
+              }
+          });
+      },
+      down : function (db, handler) {
+          var query = '';
+          var params = [];
+          db.execute(query, params, { prepare: true }, function (err) {
+              if (err) {
+                  handler(err, false);
+              } else {
+                  handler(false, true);
+              }
+          });
+      }
+    };
+    module.exports = migration${dateString};`;
 
-  fs.writeFileSync(`${process.cwd()}/${fileName}`,
-    `var migration${dateString} = {
-    up : function (db, handler) {
-        var query = '';
-        var params = [];
-        db.execute(query, params, { prepare: true }, function (err) {
-            if (err) {
-                handler(err, false);
-            } else {
-                handler(false, true);
-            }
-        });
-    },
-    down : function (db, handler) {
-        var query = '';
-        var params = [];
-        db.execute(query, params, { prepare: true }, function (err) {
-            if (err) {
-                handler(err, false);
-            } else {
-                handler(false, true);
-            }
-        });
-    }
-};
-module.exports = migration${dateString};`
-  );
+  if (program.template) {
+    template = fs.readFileSync(program.template);
+  }
+
+  fs.writeFileSync(`${process.cwd()}/${fileName}`, template);
   console.log("Created a new migration file with name " + fileName);
   process.exit(0);
 
