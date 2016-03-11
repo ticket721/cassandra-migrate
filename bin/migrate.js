@@ -206,8 +206,9 @@ var prepareMigrations = function (callback) {
         if (desiredMigration && migApplied.indexOf(desiredMigration) !== -1 && (migApplied.indexOf(desiredMigration) + 1) <= migApplied.length) {
           // If user wants to go to an old migration in db. Migration mentioned has to be in migApplied
           (function revertMigration() {
-            // Create down queries from desired migration to end of migrationApplied.
-            for (var i = migApplied.indexOf(desiredMigration); i < migApplied.length; i++) {
+            // Work backwards, down migrate until them desiredMigration.down is applied
+            var lastIndex = migApplied.length - 1;
+            for (var i = lastIndex; i >= migApplied.indexOf(desiredMigration) && i >= 0; i--) {
               var fileName = migFilesAvail[ migAvail.indexOf(migApplied[i]) ];
               var attributes = fileName.split(/\_/);
               var query = {
@@ -330,7 +331,7 @@ var down = function (query, callback) {
           return callback(err, null);
         } else {
           if (downQueries.length > 0) {
-            up(downQueries.shift(), callback);
+            down(downQueries.shift(), callback);
           } else {
             callback(null, true);
             process.nextTick(function () {
