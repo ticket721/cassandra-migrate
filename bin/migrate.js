@@ -148,37 +148,23 @@ var prepareMigrations = function (callback) {
 
   async.waterfall(
     [
-      //check if migration table exists.
       function (callback) {
-        //Check if migration table exists in defined (-k) keyspace.
-        db.execute(migration_settings.getColumnFamily, [ program.keyspace ], { prepare: true }, function (err, response) {
+        // Create migration table if doesn't exist
+        var query;
+        db.execute(migration_settings.createMigrationTable, null, {prepare: true}, function(err, response) {
           if (err) {
-            return callback(err, false);
+            return callback(err);
           }
-          callback(null, response.rows.length ? true : false);
+          callback(null);
         });
       },
-      function (migrationExists, callback) {
-        // Create migration table if doesn't exist.
-        // return data otherwise.
-        var query;
-        if (!migrationExists) {
-          db.execute(migration_settings.createMigrationTable, null, { prepare: true }, function (err, response) {
-            if (err) {
-              return callback(err);
-            }
-            // Returning empty array in migration as
-            // none of migration script is run.
-            callback(null, []);
-          });
-        } else {
-          db.execute(migration_settings.getMigration, null, { prepare: true }, function (err, alreadyRanFiles) {
-            if (err) {
-              return callback(err);
-            }
-            callback(null, alreadyRanFiles.rows);
-          });
-        }
+      function (callback) {
+        db.execute(migration_settings.getMigration, null, { prepare: true }, function (err, alreadyRanFiles) {
+          if (err) {
+            return callback(err);
+          }
+          callback(null, alreadyRanFiles.rows);
+        });
       },
       /**
        * This method takes alreadyRan files compares with available migrations on disk.
