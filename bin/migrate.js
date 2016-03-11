@@ -236,7 +236,7 @@ var prepareMigrations = function (callback) {
               var fileName = migFilesAvail[ migAvail.indexOf(migAvail[ k ]) ],
                 attributes = fileName.split("_"),
                 query = {
-                  'file': fileName, 'num': attributes[ 0 ], 'name': attributes[ 1 ].replace(".js", ""),
+                  'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
                   'run': require(path.resolve(cwd + "/" + fileName))
                 };
               upQueries.push(query);
