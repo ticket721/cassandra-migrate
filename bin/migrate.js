@@ -203,28 +203,22 @@ var prepareMigrations = function (callback) {
           return callback('Migration number ' + program.num + ' doesn\'t exist on disk');
         }
 
-        if (desiredMigration && migApplied.indexOf(desiredMigration) !== -1 && (migApplied.indexOf(desiredMigration) + 1) < migApplied.length) {
+        if (desiredMigration && migApplied.indexOf(desiredMigration) !== -1 && (migApplied.indexOf(desiredMigration) + 1) <= migApplied.length) {
           // If user wants to go to an old migration in db. Migration mentioned has to be in migApplied
-          // and should be less than migrationApplied.length.
           (function revertMigration() {
-            // Create down queries from desired migration to end of migrationApplied.
-            for (var k = migApplied.indexOf(desiredMigration) + 1; k < migApplied.length; k++) {
-              var downResult,
-                fileName = migFilesAvail[ migAvail.indexOf(migApplied[ k ]) ],
-                attributes = fileName.split("_"),
-                query = {
-                  'file': fileName, 'num': attributes[ 0 ], 'name': attributes[ 1 ].replace(".js", ""),
-                  run: require(path.resolve(cwd + "/" + fileName))
-                };
+            // Work backwards, down migrate until them desiredMigration.down is applied
+            var lastIndex = migApplied.length - 1;
+            for (var i = lastIndex; i >= migApplied.indexOf(desiredMigration) && i >= 0; i--) {
+              var fileName = migFilesAvail[ migAvail.indexOf(migApplied[i]) ];
+              var attributes = fileName.split(/\_/);
+              var query = {
+                'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
+                run: require(path.resolve(cwd + "/" + fileName))
+              };
 
               downQueries.push(query);
-
             }
           })();
-
-        } else if (desiredMigration && migApplied.length && (migApplied.indexOf(desiredMigration) + 1) === migApplied.length) {
-          //If desiredMigration is applied as last migration. We do nothing.
-          return callback('Migration number ' + desiredMigration + ' already applied');
         } else {
 
           (function getUpQueriesUntilMigration() {
@@ -337,7 +331,7 @@ var down = function (query, callback) {
           return callback(err, null);
         } else {
           if (downQueries.length > 0) {
-            up(downQueries.shift(), callback);
+            down(downQueries.shift(), callback);
           } else {
             callback(null, true);
             process.nextTick(function () {
