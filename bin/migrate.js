@@ -91,7 +91,7 @@ var createMigration = function (title) {
       up : function (db, handler) {
           var query = '';
           var params = [];
-          db.execute(query, params, { prsepare: true }, function (err) {
+          db.execute(query, params, { prepare: true }, function (err) {
               if (err) {
                   handler(err, false);
               } else {
