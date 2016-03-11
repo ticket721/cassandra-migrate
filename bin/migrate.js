@@ -14,7 +14,7 @@ var program = require("commander"),
   batchQueries = [],
   upQueries = [],
   downQueries = [],
-  reFileName = /^[0-9]{10}_[a-z0-9]*.js$/i, // regex to find migration files.,
+  reFileName = /^[0-9]{10}_[a-z0-9\_]*.js$/i, // regex to find migration files.,
   filesRan = [],
   path = require('path');
 
@@ -75,10 +75,10 @@ var createMigration = function (title) {
   var files = fs.readdirSync(process.cwd()),
     migFiles = [],
     count,
-    reTitle = /^[a-z0-9]*$/i;
+    reTitle = /^[a-z0-9\_]*$/i;
 
   if (!reTitle.test(title)) {
-    console.log('Invalid title. Only alphanumeric title is accepted.');
+    console.log("Invalid title. Only alphanumeric and '_' title is accepted.");
     process.exit(1);
   }
 
