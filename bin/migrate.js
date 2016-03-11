@@ -26,19 +26,19 @@ var usage = [
   '',
   '  example : ',
   '',
-  '  cassanova-migrate [options] [command]',
+  '  cassandra-migrate [options] [command]',
   '',
-  '  cassanova-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
+  '  cassandra-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
   '',
-  '  cassanova-migrate -k <keyspace>. (Runs pending cassandra migrations)',
+  '  cassandra-migrate -k <keyspace>. (Runs pending cassandra migrations)',
   '',
-  '  cassanova-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
+  '  cassandra-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
   '',
-  '  cassanova-migrate <create>. (Creates a new cassandra migration)',
+  '  cassandra-migrate <create>. (Creates a new cassandra migration)',
   '',
-  '  cassanova-migrate -k <keyspace> -s',
+  '  cassandra-migrate -k <keyspace> -s',
   '',
-  '  cassanova-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
+  '  cassandra-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
   '',
 
 ].join('\n');
@@ -59,14 +59,14 @@ program
   .option('-p, --password "<password>"', "database password")
   .option('-t, --template "<template>"', "sets the template for create");
 
-program.name = 'cassanova-migrate';
+program.name = 'cassandra-migrate';
 
 // init command
 
 /**
  * A method to create incremental new migrations
  * on create migration command.
- * e.g. cassanova-migration create
+ * e.g. cassandra-migration create
  * @param path
  */
 
