@@ -5,7 +5,7 @@ var cassandra = require('cassandra-driver');
 class Database {
   constructor(settings) {
     this.driverOptions = {
-      contactPoints: settings.hosts,
+      contactPoints: settings.hosts || [ "localhost" ],
       keyspace: settings.keyspace
     }
 

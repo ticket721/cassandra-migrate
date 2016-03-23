@@ -3,7 +3,8 @@
 "use strict";
 
 var program = require('commander'),
-fs = require('fs');
+fs = require('fs'),
+  cwd;
 
 /**
  * Usage information.
@@ -37,7 +38,6 @@ program.on('--help', function () {
 program
   .version(JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8')).version)
   .option('-k, --keyspace "<keyspace>"', "The name of the keyspace to use.")
-  .option('-c, --cql "<cqlStatement>"', "Run a single cql statement.")
   .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
   //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
   .option('-s, --silent', "Hide output while executing.", false)
@@ -57,25 +57,14 @@ program.name = 'cassandra-migrate';
  */
 
 
-var createMigration = function(title){
-  console.log('create function');
-};
-
-var upMigration = function(){
-  console.log('up migration');
-};
-
-var downMigration = function(){
-  console.log('down migration');
-};
-
-
 program
   .command('create <title>')
   .description('initialize a new migration file with title.')
   .option('-t, --template "<template>"', "sets the template for create")
   .action(function (title, options){
-    console.log(`in title func {title}`);
+    var Create = new require('../commands/create')(options.template);
+    Create.newMigration(title);
+    process.exit(0);
   });
 
 program
@@ -84,8 +73,13 @@ program
   .option('-a, --all', 'run all pending migrations', true)
   .option('-n, --num "<number>"','run migrations up to a specified migration number')
   .action(function(options){
-    console.log('in up function');
-    console.log(options.all);
+    var Up = new require('../commands/up')(options);
+    if(options.all){
+      Up.runAll();
+    }else{
+      Up.runNext();
+    }
+    process.exit(0)
   });
 
 program
@@ -94,7 +88,23 @@ program
   .option('-a, --all', 'rollback all migrations', true)
   .option('-n, --num "<number>"','rollback migrations down to a specified migration number')
   .action(function(options){
-    console.log('in down function');
+    var Down = new require('../commands/down')(options);
+    if(options.all){
+      Down.runAll();
+    }else{
+      Down.runPrevious();
+    }
+    process.exit(0);
+  });
+
+program
+  .command('run')
+  .description('run cql directly')
+  .option('-f, --files', 'run cql commands from file', true)
+  .action(function(options){
+    var Run = new require('../commands/run')(options);
+    Run.cql();
+    process.exit(0);
   });
 
 program.parse(process.argv);

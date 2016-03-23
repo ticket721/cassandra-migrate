@@ -5,7 +5,7 @@
 var program = require("commander"),
   fs = require('fs'),
   exists = fs.existsSync || path.existsSync,
-  Database = require('../config/database'),
+  Database = require('./database'),
   db,
   async = require("async"),
   cwd,
@@ -381,8 +381,8 @@ var dbConnect = function (callback) {
   output("Connecting to database...");
   //We need to be able to do anything with any keyspace. We just need a db connection. Just send
   //in the hosts, username and password, stripping the keyspace.
-  //opts.username = process.env.CASS_USER || config.db.username;
-  //opts.password = process.env.CASS_PASS || config.db.password;
+  //opts.username = process.env.CASS_USER || util.db.username;
+  //opts.password = process.env.CASS_PASS || util.db.password;
   if (program.username) {
     settings.username = program.username;
   }
