@@ -3,37 +3,36 @@
 "use strict";
 
 var program = require('commander'),
-fs = require('fs'),
-  cwd;
+  Common = require('../util/common');
 
 /**
  * Usage information.
  */
 
-var usage = [
-  '',
-  '  example : ',
-  '',
-  '  cassandra-migrate [options] [command]',
-  '',
-  '  cassandra-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
-  '',
-  '  cassandra-migrate -k <keyspace>. (Runs pending cassandra migrations)',
-  '',
-  '  cassandra-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
-  '',
-  '  cassandra-migrate <create>. (Creates a new cassandra migration)',
-  '',
-  '  cassandra-migrate -k <keyspace> -s',
-  '',
-  '  cassandra-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
-  '',
-
-].join('\n');
-
-program.on('--help', function () {
-  console.log(usage);
-});
+// var usage = [
+//   '',
+//   '  example : ',
+//   '',
+//   '  cassandra-migrate [options] [command]',
+//   '',
+//   '  cassandra-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
+//   '',
+//   '  cassandra-migrate -k <keyspace>. (Runs pending cassandra migrations)',
+//   '',
+//   '  cassandra-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
+//   '',
+//   '  cassandra-migrate <create>. (Creates a new cassandra migration)',
+//   '',
+//   '  cassandra-migrate -k <keyspace> -s',
+//   '',
+//   '  cassandra-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
+//   '',
+//
+// ].join('\n');
+//
+// program.on('--help', function () {
+//   console.log(usage);
+// });
 
 program
   .version(JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8')).version)
@@ -46,15 +45,6 @@ program
   ;
 
 program.name = 'cassandra-migrate';
-
-// init command
-
-/**
- * A method to create incremental new migrations
- * on create migration command.
- * e.g. cassandra-migration create
- * @param path
- */
 
 
 program
@@ -73,13 +63,29 @@ program
   .option('-a, --all', 'run all pending migrations', true)
   .option('-n, --num "<number>"','run migrations up to a specified migration number')
   .action(function(options){
-    var Up = new require('../commands/up')(options);
-    if(options.all){
-      Up.runAll();
-    }else{
-      Up.runNext();
-    }
-    process.exit(0)
+    var common = new Common(options);
+    common.createMigrationTable()
+      .then(common.getMigrationFiles())
+      .then(files => {
+        common.getMigrations()
+          .then(migs => {
+            resolve({'files':files, 'migrations':migs});
+          });
+      })
+      .then(migrationLists => {
+        var Up = new require('../commands/up')(options, migrationList);
+        if(options.all){
+          Up.runAll()
+            .then(process.exit(0));
+        }else if(options.num){
+          Up.runUntil(options.num)
+            .then(process.exit(0));
+        }else{
+          Up.runNext()
+            .then(process.exit(0));
+        }
+      });
+
   });
 
 program
@@ -88,15 +94,33 @@ program
   .option('-a, --all', 'rollback all migrations', true)
   .option('-n, --num "<number>"','rollback migrations down to a specified migration number')
   .action(function(options){
-    var Down = new require('../commands/down')(options);
-    if(options.all){
-      Down.runAll();
-    }else{
-      Down.runPrevious();
-    }
-    process.exit(0);
-  });
+    var common = new Common(options);
+    common.createMigrationTable()
+      .then(common.getMigrationFiles())
+      .then(files => {
+        common.getMigrations()
+          .then(migs => {
+            resolve({'files':files, 'migrations':migs});
+          });
+      })
+      .then(migrationLists => {
+        var Down = new require('../commands/down')(options);
+        if(options.all){
+          Down.runAll()
+            .then(process.exit(0));
+        }else if(options.num){
+          Down.runUntil(options.num)
+            .then(process.exit(0));
+        }else{
+          Down.runPrevious()
+            .then(process.exit(0));
+        }
+      });
 
+
+  });
+/*
+//@TODO: add this functionality  so that a cql client isn't directly required
 program
   .command('run')
   .description('run cql directly')
@@ -106,6 +130,6 @@ program
     Run.cql();
     process.exit(0);
   });
-
+*/
 program.parse(process.argv);
 

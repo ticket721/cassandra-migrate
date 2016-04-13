@@ -11,26 +11,26 @@ class Create {
     var template = `
 var migration${dateString} = {
   up : function (db, handler) {
-      var query = '';
-      var params = [];
-      db.execute(query, params, { prepare: true }, function (err) {
-          if (err) {
-              handler(err, false);
-          } else {
-              handler(false, true);
-          }
-      });
+    var query = '';
+    var params = [];
+    db.execute(query, params, { prepare: true }, function (err) {
+      if (err) {
+        handler(err, false);
+      } else {
+        handler(false, true);
+      }
+    });
   },
   down : function (db, handler) {
-      var query = '';
-      var params = [];
-      db.execute(query, params, { prepare: true }, function (err) {
-          if (err) {
-              handler(err, false);
-          } else {
-              handler(false, true);
-          }
-      });
+    var query = '';
+    var params = [];
+    db.execute(query, params, { prepare: true }, function (err) {
+      if (err) {
+        handler(err, false);
+      } else {
+        handler(false, true);
+      }
+    });
   }
 };
 module.exports = migration${dateString};`;
@@ -56,7 +56,7 @@ module.exports = migration${dateString};`;
 
     fs.writeFileSync(`${process.cwd()}/${fileName}`, this.template);
     console.log("Created a new migration file with name " + fileName);
-    
+
   }
 
 }
