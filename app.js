@@ -3,7 +3,7 @@
 "use strict";
 
 var program = require('commander'),
-  Common = require('../util/common');
+  Common = require('./util/common');
 
 /**
  * Usage information.
@@ -42,7 +42,7 @@ program
   .option('-s, --silent', "Hide output while executing.", false)
   .option('-u, --username "<username>"', "database username")
   .option('-p, --password "<password>"', "database password")
-  ;
+;
 
 program.name = 'cassandra-migrate';
 
@@ -51,8 +51,8 @@ program
   .command('create <title>')
   .description('initialize a new migration file with title.')
   .option('-t, --template "<template>"', "sets the template for create")
-  .action(function (title, options){
-    var Create = new require('../commands/create')(options.template);
+  .action(function (title, options) {
+    var Create = new require('commands/create')(options.template);
     Create.newMigration(title);
     process.exit(0);
   });
@@ -60,30 +60,23 @@ program
 program
   .command('up')
   .description('run pending migrations')
-  .option('-a, --all', 'run all pending migrations', true)
-  .option('-n, --num "<number>"','run migrations up to a specified migration number')
-  .action(function(options){
+  .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
+  .action(function (options) {
     var common = new Common(options);
     common.createMigrationTable()
       .then(common.getMigrationFiles())
-      .then(files => {
-        common.getMigrations()
-          .then(migs => {
-            resolve({'files':files, 'migrations':migs});
-          });
-      })
+      .then(common.getMigrations())
+      .then(common.getMigrationSet('up', options.num))
       .then(migrationLists => {
-        var Up = new require('../commands/up')(options, migrationList);
-        if(options.all){
-          Up.runAll()
-            .then(process.exit(0));
-        }else if(options.num){
-          Up.runUntil(options.num)
-            .then(process.exit(0));
-        }else{
-          Up.runNext()
-            .then(process.exit(0));
-        }
+        var Up = new require('./commands/up')(options, migrationLists);
+        Up.run()
+          .then(result => {
+            console.log(result);
+            process.exit(1);
+          }, error => {
+            console.log(error);
+            process.exit(0);
+          });
       });
 
   });
@@ -91,45 +84,38 @@ program
 program
   .command('down')
   .description('roll back already run migrations')
-  .option('-a, --all', 'rollback all migrations', true)
-  .option('-n, --num "<number>"','rollback migrations down to a specified migration number')
-  .action(function(options){
+  .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
+  .action(function (options) {
     var common = new Common(options);
     common.createMigrationTable()
       .then(common.getMigrationFiles())
-      .then(files => {
-        common.getMigrations()
-          .then(migs => {
-            resolve({'files':files, 'migrations':migs});
-          });
-      })
+      .then(common.getMigrations())
+      .then(common.getMigrationSet('down', options.num))
       .then(migrationLists => {
-        var Down = new require('../commands/down')(options);
-        if(options.all){
-          Down.runAll()
-            .then(process.exit(0));
-        }else if(options.num){
-          Down.runUntil(options.num)
-            .then(process.exit(0));
-        }else{
-          Down.runPrevious()
-            .then(process.exit(0));
-        }
+        var Down = new require('./commands/down')(options, migrationLists);
+        Down.run()
+          .then(result => {
+            console.log(result);
+            process.exit(1);
+          }, error => {
+            console.log(error);
+            process.exit(0);
+          });
       });
 
 
   });
 /*
-//@TODO: add this functionality  so that a cql client isn't directly required
-program
-  .command('run')
-  .description('run cql directly')
-  .option('-f, --files', 'run cql commands from file', true)
-  .action(function(options){
-    var Run = new require('../commands/run')(options);
-    Run.cql();
-    process.exit(0);
-  });
-*/
+ //@TODO: add this functionality  so that a cql client isn't directly required
+ program
+ .command('run')
+ .description('run cql directly')
+ .option('-f, --files', 'run cql commands from file', true)
+ .action(function(options){
+ var Run = new require('../commands/run')(options);
+ Run.cql();
+ process.exit(0);
+ });
+ */
 program.parse(process.argv);
 

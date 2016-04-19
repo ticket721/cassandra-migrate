@@ -1,73 +1,57 @@
 'use strict';
+var async = require('async');
+var cwd = require('cwd');
 
 class up {
-  constructor (options, migrationList){
+  constructor(options, pendingMigrations) {
     this.db = new require('../util/database')(options);
-    this.run = migrationList.migrations;
-    this.pending = migrationList.files;
+    this.pending = pendingMigrations;
+    this.keyList = pendingMigrations.keys().sort(function (a, b) {
+      return a - b;
+    });
   }
 
-  run(){
-    return new Promise ((resolve, reject) => {
+  runPending() {
+    return new Promise((resolve, reject) => {
+      async.eachSeries(this.keyList, function (id, callback) {
+        let fileName = this.pending[ id ];
+        let attributes = fileName.split("_");
+        let query = {
+            'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
+            'run': require(path.resolve(cwd + "/" + fileName))
+          };
+        this.run(query).then(callback(null, true), callback(err));
+      }, function (err) {
+        if (err) {
+          reject (`Error Running Migrations: ${err}`);
+        } else {
+          resolve ('All Migrations Ran Successfully');
+        }
+      });
+
+    });
+  }
+
+  run(query) {
+    return new Promise((resolve, reject) => {
       output(`Migrating changes: ${query.name}`);
       query.run.up(db, function (err) {
         if (err) {
-          return callback(err, null);
+          reject(`Failed to run migration ${query.name}`);
         } else {
           db.execute(migration_settings.insertMigration, [ query.file, Date.now(), query.num, query.name ],
             { prepare: true }, function (err) {
               if (err) {
-                return callback(err, null);
+                reject(`Failed to write migration to Migrations Table: ${query.name}`);
               } else {
-                if (upQueries.length > 0) {
-                  up(upQueries.shift(), callback);
-                } else {
-                  callback(null, true);
-                  process.nextTick(function () {
-                    process.exit(1);
-                  });
-                }
+                resolve(`Successfully Migrated ${query.name}`);
               }
             });
         }
       });
     });
   }
-  
-  runUntil(n){
-    return new Promise ((resolve, reject) => {
 
-    });
-  }
-
-  runAll(){
-    return new Promise ((resolve, reject) => {
-
-    });
-  }
-
-  getUpQueriesUntilMigration() {
-    var migrationFrom = migApplied.length,
-      migrationTo;
-
-    //If desired todo
-    if (desiredMigration && (migAvail.indexOf(desiredMigration) + 1) < migAvail.length) {
-      migrationTo = migAvail.indexOf(desiredMigration) + 1;
-    } else {
-      migrationTo = migAvail.length;
-    }
-
-    for (var k = migrationFrom; k < migrationTo; k++) {
-      var fileName = migFilesAvail[ migAvail.indexOf(migAvail[ k ]) ],
-        attributes = fileName.split("_"),
-        query = {
-          'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
-          'run': require(path.resolve(cwd + "/" + fileName))
-        };
-      upQueries.push(query);
-
-    }
-  }
 
 }
 
