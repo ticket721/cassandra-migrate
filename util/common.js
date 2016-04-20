@@ -68,7 +68,6 @@ class common {
 
   getMigrationSet(direction, n){
     return new Promise((resolve, reject) => {
-      let migSet = [];
       let pending;
       if(direction == 'up'){
         pending = difference(self.filesRan, self.migFilesAvail);
