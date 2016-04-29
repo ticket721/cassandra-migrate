@@ -1,6 +1,7 @@
 'use strict';
 var async = require('async');
 var cwd = require('cwd');
+var migration_settings = require('../scripts/migrationSettings.json');
 
 class down {
   constructor(options, pendingMigrations) {
@@ -35,7 +36,7 @@ class down {
   run(query) {
     return new Promise((resolve, reject) => {
       output(`Rolling back changes: ${query.name}`);
-      query.run.down(db, function (err) {
+      query.run.down(this.db, function (err) {
         if (err) {
           reject(err);
         } else {

@@ -1,6 +1,7 @@
 'use strict';
 var async = require('async');
 var cwd = require('cwd');
+var migration_settings = require('../scripts/migrationSettings.json');
 
 class up {
   constructor(options, pendingMigrations) {
@@ -35,7 +36,7 @@ class up {
   run(query) {
     return new Promise((resolve, reject) => {
       output(`Migrating changes: ${query.name}`);
-      query.run.up(db, function (err) {
+      query.run.up(this.db, function (err) {
         if (err) {
           reject(`Failed to run migration ${query.name}`);
         } else {

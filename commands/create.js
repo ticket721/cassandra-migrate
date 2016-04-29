@@ -41,24 +41,17 @@ module.exports = migration${dateString};`;
   }
 
   newMigration(title) {
-
     var reTitle = /^[a-z0-9\_]*$/i;
-
     if (!reTitle.test(title)) {
       console.log("Invalid title. Only alphanumeric and '_' title is accepted.");
       process.exit(1);
     }
 
     var dateString = Math.floor(Date.now() / 1000) + '';
-
     var fileName = dateString + '_' + title + '.js';
-
-
     fs.writeFileSync(`${process.cwd()}/${fileName}`, this.template);
     console.log("Created a new migration file with name " + fileName);
-
   }
-
 }
 
 module.exports = Create;
