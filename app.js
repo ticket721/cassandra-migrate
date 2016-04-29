@@ -2,8 +2,9 @@
 /*jslint node: true */
 "use strict";
 
-var program = require('commander'),
-  Common = require('./util/common');
+var program = require('commander');
+var Common = require('./util/common');
+var fs = require('fs');
 
 /**
  * Usage information.
@@ -35,7 +36,7 @@ var program = require('commander'),
 // });
 
 program
-  .version(JSON.parse(fs.readFileSync(__dirname + '/../package.json', 'utf8')).version)
+  .version(JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf8')).version)
   .option('-k, --keyspace "<keyspace>"', "The name of the keyspace to use.")
   .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
   //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
@@ -52,8 +53,9 @@ program
   .description('initialize a new migration file with title.')
   .option('-t, --template "<template>"', "sets the template for create")
   .action(function (title, options) {
-    var Create = new require('commands/create')(options.template);
-    Create.newMigration(title);
+    let Create = require('./commands/create');
+    let create = new Create(fs, options.template);
+    create.newMigration(title);
     process.exit(0);
   });
 
@@ -62,14 +64,15 @@ program
   .description('run pending migrations')
   .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
   .action(function (options) {
-    var common = new Common(options);
+    var common = new Common(fs,options);
     common.createMigrationTable()
       .then(common.getMigrationFiles())
       .then(common.getMigrations())
       .then(common.getMigrationSet('up', options.num))
       .then(migrationLists => {
-        var Up = new require('./commands/up')(options, migrationLists);
-        Up.run()
+        let Up = require('./commands/up');
+        let up = new Up(options, migrationLists);
+        up.run()
           .then(result => {
             console.log(result);
             process.exit(1);
@@ -86,14 +89,15 @@ program
   .description('roll back already run migrations')
   .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
   .action(function (options) {
-    var common = new Common(options);
+    var common = new Common(fs,options);
     common.createMigrationTable()
       .then(common.getMigrationFiles())
       .then(common.getMigrations())
       .then(common.getMigrationSet('down', options.num))
       .then(migrationLists => {
-        var Down = new require('./commands/down')(options, migrationLists);
-        Down.run()
+        let Down = require('./commands/down');
+        let down = new Down(options, migrationLists);
+        down.run()
           .then(result => {
             console.log(result);
             process.exit(1);

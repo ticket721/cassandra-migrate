@@ -1,4 +1,5 @@
 'use strict';
+
 /**
  * A method to create incremental new migrations
  * on create migration command.
@@ -7,9 +8,13 @@
  */
 
 class Create {
-  constructor(templateFile) {
+
+  constructor(fs, templateFile) {
+    this.fs = fs;
+    this.dateString = Math.floor(Date.now() / 1000) + '';
+
     var template = `
-var migration${dateString} = {
+var migration${this.dateString} = {
   up : function (db, handler) {
     var query = '';
     var params = [];
@@ -33,9 +38,10 @@ var migration${dateString} = {
     });
   }
 };
-module.exports = migration${dateString};`;
+module.exports = migration${this.dateString};`;
+    
     if (templateFile) {
-      template = fs.readFileSync(program.template);
+      template = this.fs.readFileSync(program.template);
     }
     this.template = template;
   }
@@ -47,10 +53,9 @@ module.exports = migration${dateString};`;
       process.exit(1);
     }
 
-    var dateString = Math.floor(Date.now() / 1000) + '';
-    var fileName = dateString + '_' + title + '.js';
-    fs.writeFileSync(`${process.cwd()}/${fileName}`, this.template);
-    console.log("Created a new migration file with name " + fileName);
+    var fileName = `${this.dateString}_${title}.js`;
+    this.fs.writeFileSync(`${process.cwd()}/${fileName}`, this.template);
+    console.log(`Created a new migration file with name ${fileName}`);
   }
 }
 

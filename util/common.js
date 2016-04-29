@@ -1,11 +1,9 @@
 'use strict';
 var path = require('path'),
-  fs = require('fs'),
   migration_settings = require('../scripts/migrationSettings.json');
 
 class common {
-  var self = this;
-  construct(options) {
+  construct(fs, options) {
     this.db = new require('../util/database')(options);
     this.fs = fs.FileReader();
     this.reFileName = /^[0-9]{10}_[a-z0-9\_]*.js$/i;
@@ -33,7 +31,7 @@ class common {
           for (let i = 0; i < alreadyRanFiles.rows.length; i++) {
             filesRan[alreadyRanFiles.migration_number] = (alreadyRanFiles.rows[ i ].file_name);
           }
-          self.filesRan = filesRan;
+          this.filesRan = filesRan;
           resolve(filesRan);
         }
       });
@@ -50,7 +48,7 @@ class common {
           filesAvail[files[ j ].substr(0,10)] = files[j];
         }
       }
-      self.filesAvail = filesAvail;
+      this.filesAvail = filesAvail;
       resolve(filesAvail);
     });
   }
@@ -70,7 +68,7 @@ class common {
     return new Promise((resolve, reject) => {
       let pending;
       if(direction == 'up'){
-        pending = difference(self.filesRan, self.migFilesAvail);
+        pending = difference(this.filesRan, this.migFilesAvail);
         for(let key in pending){
           if(pending[n]) {
             if (pending.hasOwnProperty(key) && key > n) {
@@ -81,7 +79,7 @@ class common {
           }
         }
       }else if (direction =='down'){
-        pending = self.filesRan;
+        pending = this.filesRan;
         for(let key in pending){
           if(pending[n]){
             if(pending.hasOwnProperty(key) && key < n) {
