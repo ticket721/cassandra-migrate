@@ -1,13 +1,13 @@
 'use strict';
 var async = require('async');
-var cwd = require('cwd');
 var migration_settings = require('../scripts/migrationSettings.json');
+var path = require('path');
 
 class down {
-  constructor(options, pendingMigrations) {
-    this.db = new require('../util/database')(options);
+  constructor(db, pendingMigrations) {
+    this.db = db;
     this.pending = pendingMigrations;
-    this.keyList = pendingMigrations.keys().sort(function (a, b) {
+    this.keyList = Object.keys(pendingMigrations).sort(function (a, b) {
       return b - a;
     });
   }
@@ -19,7 +19,7 @@ class down {
         let attributes = fileName.split("_");
         let query = {
           'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
-          'run': require(path.resolve(cwd + "/" + fileName))
+          'run': require(path.resolve(process.cwd() + "/" + fileName))
         };
         this.run(query).then(callback(null, true));
       }, function (err) {
@@ -35,7 +35,7 @@ class down {
 
   run(query) {
     return new Promise((resolve, reject) => {
-      output(`Rolling back changes: ${query.name}`);
+      console.log(`Rolling back changes: ${query.name}`);
       query.run.down(this.db, function (err) {
         if (err) {
           reject(err);

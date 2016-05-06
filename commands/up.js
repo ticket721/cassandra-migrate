@@ -1,28 +1,28 @@
 'use strict';
 var async = require('async');
-var cwd = require('cwd');
 var migration_settings = require('../scripts/migrationSettings.json');
+var path = require('path');
 
-class up {
-  constructor(options, pendingMigrations) {
-    this.db = new require('../util/database')(options);
+class Up {
+  constructor(db, pendingMigrations) {
+    this.db = db;
     this.pending = pendingMigrations;
-    this.keyList = pendingMigrations.keys().sort(function (a, b) {
+    this.keyList = Object.keys(pendingMigrations).sort(function (a, b) {
       return a - b;
     });
   }
 
   runPending() {
     return new Promise((resolve, reject) => {
-      async.eachSeries(this.keyList, function (id, callback) {
+      async.eachSeries(this.keyList, (id, callback) => {
         let fileName = this.pending[ id ];
         let attributes = fileName.split("_");
         let query = {
             'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
-            'run': require(path.resolve(cwd + "/" + fileName))
+            'run': require(path.resolve(process.cwd() + "/" + fileName))
           };
         this.run(query).then(callback(null, true), callback(err));
-      }, function (err) {
+      }, (err) => {
         if (err) {
           reject (`Error Running Migrations: ${err}`);
         } else {
@@ -35,7 +35,7 @@ class up {
 
   run(query) {
     return new Promise((resolve, reject) => {
-      output(`Migrating changes: ${query.name}`);
+      console.log(`Migrating changes: ${query.name}`);
       query.run.up(this.db, function (err) {
         if (err) {
           reject(`Failed to run migration ${query.name}`);
@@ -56,4 +56,4 @@ class up {
 
 }
 
-module.exports = up;
+module.exports = Up;
