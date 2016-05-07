@@ -9,7 +9,7 @@ class Database {
       contactPoints: settings.hosts || process.env.DBHOST || [ "localhost" ],
       keyspace: settings.keyspace || process.env.DBKEYSPACE
     };
-    
+
     var username = settings.username || process.env.DBUSER;
     var password = settings.password || process.env.DBPASSWORD;
 
@@ -18,6 +18,10 @@ class Database {
     }
 
     var client = new cassandra.Client(this.driverOptions);
+
+    // client.on('log', function (level, className, message, furtherInfo) {
+    //  console.log('log event: %s -- %s', level, message);
+    // });
 
     return client;
   }

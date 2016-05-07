@@ -22,18 +22,18 @@ class Common {
   }
 
   getMigrations() {
-    console.log('get migrations');
     return new Promise((resolve, reject) => {
+      this.filesRan = {};
+      var self = this;
       this.db.execute(migration_settings.getMigration, null, { prepare: true }, function (err, alreadyRanFiles) {
         if (err) {
           reject(err);
         } else {
           let filesRan = {};
           for (let i = 0; i < alreadyRanFiles.rows.length; i++) {
-            filesRan[ alreadyRanFiles.migration_number ] = (alreadyRanFiles.rows[ i ].file_name);
+            filesRan[ alreadyRanFiles.rows[ i ].migration_number ] = (alreadyRanFiles.rows[ i ].file_name);
           }
-          this.filesRan = filesRan;
-          console.log(filesRan);
+          self.filesRan = filesRan;
           resolve(filesRan);
         }
       });
@@ -41,7 +41,6 @@ class Common {
   }
 
   getMigrationFiles(dir) {
-    console.log('get migration files')
     return new Promise((resolve, reject) => {
       let files = this.fs.readdirSync(dir);
       let filesAvail = {};
@@ -68,7 +67,6 @@ class Common {
   }
 
   getMigrationSet(direction, n) {
-    console.log('get migration set');
     return new Promise((resolve, reject) => {
       let pending;
       if (direction == 'up') {
@@ -80,7 +78,11 @@ class Common {
                 delete pending[ key ];
               }
             } else {
-              reject(`migration number ${n} not found in pending migrations`)
+              if(this.filesRan[ n ]){
+                reject(`migration number ${n} already ran`);
+              }else {
+                reject(`migration number ${n} not found in pending migrations`);
+              }
             }
           }
         }
@@ -93,7 +95,11 @@ class Common {
                 delete pending [ key ];
               }
             } else {
-              reject(`migration number ${n} not found in pending migrations`)
+              if(this.filesAvail[ n ]){
+                reject(`migration number ${n} not run yet`);
+              }else {
+                reject(`migration number ${n} not found in pending rollbacks`);
+              }
             }
           }
         }

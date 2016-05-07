@@ -101,9 +101,9 @@ program
     var common = new Common(fs,db);
     common.createMigrationTable()
       .then(common.getMigrationFiles(process.cwd()))
-      .then(common.getMigrations())
-      .then(common.getMigrationSet('down', options.num))
-      .then(migrationLists => {
+      .then(() => common.getMigrations())
+      .then(() => common.getMigrationSet('down', options.num))
+      .then((migrationLists) => {
         console.log('processing migration lists');
         let Down = require('./commands/down');
         let down = new Down(db, migrationLists);

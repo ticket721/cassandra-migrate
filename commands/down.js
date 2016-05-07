@@ -14,19 +14,22 @@ class down {
 
   runPending() {
     return new Promise((resolve, reject) => {
-      async.eachSeries(this.keyList, function (id, callback) {
+      async.eachSeries(this.keyList, (id, callback) => {
         let fileName = this.pending[ id ];
         let attributes = fileName.split("_");
         let query = {
           'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
           'run': require(path.resolve(process.cwd() + "/" + fileName))
         };
-        this.run(query).then(callback(null, true));
-      }, function (err) {
+        this.run(query).then(
+          (result) => {
+            callback(null, result);
+          }).catch((error) => {callback(error)});
+      }, (err) => {
         if (err) {
-          reject(`Error Rolling Back Migrations: ${err}`);
+          reject (`Error Rolling Back Migrations: ${err}`);
         } else {
-          resolve('All Migrations Rolled Back Successfully');
+          resolve ('All Migrations Rolled Back Successfully');
         }
       });
 
@@ -36,7 +39,8 @@ class down {
   run(query) {
     return new Promise((resolve, reject) => {
       console.log(`Rolling back changes: ${query.name}`);
-      query.run.down(this.db, function (err) {
+      let db = this.db;
+      query.run.down(db, function (err) {
         if (err) {
           reject(err);
         } else {
