@@ -1,10 +1,10 @@
 {
   "name": "cassandra-migrate",
-  "version": "0.1.25",
+  "version": "1.0.0",
   "description": "Cassandra migration for node.",
-  "main": "./index.js",
+  "main": "./app.js",
   "bin": {
-    "cassandra-migrate": "./bin/migrate.js"
+    "cassandra-migrate": "./app.js"
   },
   "repository": {
     "type": "git",

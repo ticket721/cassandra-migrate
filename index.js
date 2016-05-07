@@ -1,1 +1,1 @@
-module.exports = require("./bin/migrate.js");
+module.exports = require("./app.js");

@@ -17,52 +17,48 @@ Install [node.js](http://nodejs.org/) and [cassandra](http://cassandra.apache.or
 npm install cassandra-migrate
 ```
 
-```
-cd cassandra-migrate
-```
-
-```
-npm install
-```
-
 ## Overview
 
 ### Basic Usage
 
-Runs all migrations available in current directory.
-
-```
-    cassandra-migrate -k <keyspace>
-```
-
-Creates a new migration with incremental migration number ( Used for tracking migrations ).
+Creates a new migration with a timestamped migration number ( Used for tracking migrations ).
 
 ```
     cassandra-migrate create <title>
 ```
 
+Runs all migrations available in current directory.
+
+```
+    cassandra-migrate up -k <keyspace>
+```
+
+Rolls back all migrations in the migrations table.
+
+```
+    cassandra-migrate down -k <keyspace>
+```
+
+
 Goes back/forward to a particular migration automatically.
 
 ```
-    cassandra-migrate -k <keyspace> -n <migration-number>
+    cassandra-migrate <up/down> -k <keyspace> -n <migration-number>
 ```
 
-Runs a cql command.
-
-```
-    cassandra-migrate -k <keyspace> -c "<cql-script>"
-```
-
-Runs a cql command.
-
-```
-    cassandra-migrate -k <keyspace> -c "<cql-script>"
-```
 
 Define host, username, and password. By default connects to [localhost] and default cassandra port [9042].
 
 ```
     cassandra-migrate -h [10.10.10.1] -u username -p password
+```
+
+Cassandra connection details can also be specified in environmental variables
+```
+    DBHOST : sets hostname
+    DBKEYSPACE : sets keyspace
+    DBUSER : sets username
+    DBPASSWORD : sets password;
 ```
 
 More help.
