@@ -78,15 +78,15 @@ program
         up.runPending()
           .then(result => {
             console.log(result);
-            process.exit(1);
+            process.exit(0);
           }, error => {
             console.log(error);
-            process.exit(0);
+            process.exit(1);
           });
       })
       .catch(error => {
         console.log(error);
-        process.exit(0);
+        process.exit(1);
       });
 
   });
@@ -110,17 +110,16 @@ program
         down.runPending()
           .then(result => {
             console.log(result);
-            process.exit(1);
+            process.exit(0);
           }, error => {
             console.log(error);
-            process.exit(0);
+            process.exit(1);
           });
       })
       .catch(error => {
         console.log(error);
-      });;
-
-
+        process.exit(1);
+      });
   });
 /*
  //@TODO: add this functionality  so that a cql client isn't directly required
