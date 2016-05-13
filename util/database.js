@@ -6,7 +6,7 @@ class Database {
   constructor(settings) {
 
     this.driverOptions = {
-      contactPoints: settings.hosts || process.env.DBHOST || [ "localhost" ],
+      contactPoints: [settings.hosts] || [process.env.DBHOST] || [ "localhost" ],
       keyspace: settings.keyspace || process.env.DBKEYSPACE
     };
 
