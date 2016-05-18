@@ -12,24 +12,33 @@ class Up {
     });
   }
 
-  runPending() {
+  runPending(skip) {
     return new Promise((resolve, reject) => {
       async.eachSeries(this.keyList, (id, callback) => {
         let fileName = this.pending[ id ];
         let attributes = fileName.split("_");
         let query = {
-            'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
-            'run': require(path.resolve(process.cwd() + "/" + fileName))
-          };
-        this.run(query).then(
-          (result) => {
-            callback(null, result);
-          }).catch((error) => {callback(error)});
+          'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
+          'run': require(path.resolve(process.cwd() + "/" + fileName))
+        };
+        if (skip) {
+          if (query.num == skip) {
+            this.updateMigrationTable(query)
+              .then((result) => callback(null, result))
+              .catch((error) => callback(error));
+          }
+        } else {
+          this.run(query)
+            .then((query) => this.updateMigrationTable(query))
+            .then((result) => callback(null, result))
+            .catch((error) => callback(error));
+        }
+
       }, (err) => {
         if (err) {
-          reject (`Error Running Migrations: ${err}`);
+          reject(`Error Running Migrations: ${err}`);
         } else {
-          resolve ('All Migrations Ran Successfully');
+          resolve('All Migrations Ran Successfully');
         }
       });
 
@@ -41,20 +50,27 @@ class Up {
       console.log(`Migrating changes: ${query.name}`);
       let db = this.db;
       query.run.up(db, function (err) {
+        if (err) {
+          reject(`Failed to run migration ${query.name}: ${err}`);
+        } else {
+          resolve(query);
+        }
+      });
+    });
+  }
+
+  updateMigrationTable(query) {
+    return new Promise((resolve, reject) => {
+      let db = this.db;
+      db.execute(migration_settings.insertMigration, [ query.file, Date.now(), query.num, query.name ],
+        { prepare: true }, function (err) {
           if (err) {
-            reject(`Failed to run migration ${query.name}: ${err}`);
+            reject(`Failed to write migration to Migrations Table: ${query.name}`);
           } else {
-            db.execute(migration_settings.insertMigration, [ query.file, Date.now(), query.num, query.name ],
-              { prepare: true }, function (err) {
-                if (err) {
-                  reject(`Failed to write migration to Migrations Table: ${query.name}`);
-                } else {
-                  resolve(`Successfully Migrated ${query.name}`);
-                }
-              });
+            resolve(`Successfully Migrated ${query.name}`);
           }
         });
-    });
+    })
   }
 
 

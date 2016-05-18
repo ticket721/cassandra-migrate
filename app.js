@@ -41,7 +41,6 @@ program
   .option('-k, --keyspace "<keyspace>"', "The name of the keyspace to use.")
   .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
   //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
-  .option('-s, --silent', "Hide output while executing.", false)
   .option('-u, --username "<username>"', "database username")
   .option('-p, --password "<password>"', "database password")
 ;
@@ -64,6 +63,7 @@ program
   .command('up')
   .description('run pending migrations')
   .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
+  .option('-s, --skip <number>', "adds the specified migration to the migration table without actually running it", false)
   .action((options) => {
     let db = new DB(program);
     var common = new Common(fs,db);
@@ -75,7 +75,7 @@ program
         let Up = require('./commands/up');
         let up = new Up(db, migrationLists);
         console.log('processing migration lists');
-        up.runPending()
+        up.runPending(options.skip)
           .then(result => {
             console.log(result);
             process.exit(0);
@@ -95,6 +95,7 @@ program
   .command('down')
   .description('roll back already run migrations')
   .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
+  .option('-s, --skip <number>', "removes the specified migration from the migration table without actually running it", false)
   .action((options) => {
     console.log('in action down');
     let db = new DB(program);
@@ -107,7 +108,7 @@ program
         console.log('processing migration lists');
         let Down = require('./commands/down');
         let down = new Down(db, migrationLists);
-        down.runPending()
+        down.runPending(options.skip)
           .then(result => {
             console.log(result);
             process.exit(0);
