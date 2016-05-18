@@ -47,12 +47,11 @@ program
 
 program.name = 'cassandra-migrate';
 
-
 program
   .command('create <title>')
   .description('initialize a new migration file with title.')
   .option('-t, --template "<template>"', "sets the template for create")
-  .action(function (title, options) {
+  .action((title, options) => {
     let Create = require('./commands/create');
     let create = new Create(fs, options.template);
     create.newMigration(title);
@@ -63,10 +62,10 @@ program
   .command('up')
   .description('run pending migrations')
   .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
-  .option('-s, --skip <number>', "adds the specified migration to the migration table without actually running it", false)
+  .option('-s, --skip "<number>"', "adds the specified migration to the migration table without actually running it", false)
   .action((options) => {
     let db = new DB(program);
-    var common = new Common(fs,db);
+    let common = new Common(fs, db);
     common.createMigrationTable()
       .then(common.getMigrationFiles(process.cwd()))
       .then(() => common.getMigrations())
@@ -74,7 +73,10 @@ program
       .then((migrationLists) => {
         let Up = require('./commands/up');
         let up = new Up(db, migrationLists);
-        console.log('processing migration lists');
+        if (!options.skip) {
+          console.log('processing migration lists');
+          console.log(migrationLists);
+        }
         up.runPending(options.skip)
           .then(result => {
             console.log(result);
@@ -95,11 +97,11 @@ program
   .command('down')
   .description('roll back already run migrations')
   .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
-  .option('-s, --skip <number>', "removes the specified migration from the migration table without actually running it", false)
+  .option('-s, --skip "<number>"', "removes the specified migration from the migration table without actually running it", false)
   .action((options) => {
     console.log('in action down');
     let db = new DB(program);
-    var common = new Common(fs,db);
+    let common = new Common(fs, db);
     common.createMigrationTable()
       .then(common.getMigrationFiles(process.cwd()))
       .then(() => common.getMigrations())
@@ -108,6 +110,10 @@ program
         console.log('processing migration lists');
         let Down = require('./commands/down');
         let down = new Down(db, migrationLists);
+        if (!options.skip) {
+          console.log('processing migration lists');
+          console.log(migrationLists);
+        }
         down.runPending(options.skip)
           .then(result => {
             console.log(result);

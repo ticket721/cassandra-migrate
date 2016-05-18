@@ -4,9 +4,11 @@ var cassandra = require('cassandra-driver');
 
 class Database {
   constructor(settings) {
+    settings.hosts = (settings.hosts)? settings.hosts.split(','):undefined;
+    let envHosts = (process.env.DBHOST)?  process.env.DBHOST.split(','):undefined;
 
     this.driverOptions = {
-      contactPoints: [settings.hosts] || [process.env.DBHOST] || [ "localhost" ],
+      contactPoints: settings.hosts || envHosts || [ "localhost" ],
       keyspace: settings.keyspace || process.env.DBKEYSPACE
     };
 

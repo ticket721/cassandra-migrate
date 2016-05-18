@@ -2,6 +2,10 @@
 
 Cassandra-migrate is a incremental migration tool for Cassandra.
 
+## Version 1.1.2 update
+the format of the migration table has changed, to facilitate the change over I've included an example migration file (0000000000_updateMigrationTable.js)
+that should nondestructivly update the migration table to the new format, just copy it into your migrations folder and run it before running any other migrations
+
 ## Features
 - Uses the node cassandra-driver  to run incremental migrations on Cassandra database.
 - Uses Cassandra keyspace mentioned in commandline to keep track of ran migrations.
@@ -46,6 +50,11 @@ Goes back/forward to a particular migration automatically.
     cassandra-migrate <up/down> -k <keyspace> -n <migration-number>
 ```
 
+Skips a particular migration (either adds or removes the migration from the table without running any scripts.
+
+```
+    cassandra-migrate <up/down> -k <keyspace> -s <migration-number>
+```
 
 Define host, username, and password. By default connects to [localhost] and default cassandra port [9042].
 

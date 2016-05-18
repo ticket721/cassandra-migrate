@@ -18,16 +18,19 @@ class down {
         let fileName = this.pending[ id ];
         let attributes = fileName.split("_");
         let query = {
-          'file': fileName, 'num': attributes[ 0 ], 'name': fileName.replace(".js", ""),
+          'file_name': fileName, 'migration_number': attributes[ 0 ], 'title': fileName.replace(".js", ""),
           'run': require(path.resolve(process.cwd() + "/" + fileName))
         };
-        if(skip){
-          if(skip == query.num){
+        if (skip) {
+          if (skip == query.migration_number) {
+            console.log(`removing ${query.file_name} from migration table, skipping migration`);
             this.updateMigrationTable(query)
               .then((result) => callback(null, result))
               .catch((error) => callback(error));
+          } else {
+            callback(null, '');
           }
-        }else{
+        } else {
           this.run(query)
             .then((query) => this.updateMigrationTable(query))
             .then((result) => callback(null, result))
@@ -35,9 +38,9 @@ class down {
         }
       }, (err) => {
         if (err) {
-          reject (`Error Rolling Back Migrations: ${err}`);
+          reject(`Error Rolling Back Migrations: ${err}`);
         } else {
-          resolve ('All Migrations Rolled Back Successfully');
+          resolve('All Migrations Rolled Back Successfully');
         }
       });
 
@@ -46,7 +49,7 @@ class down {
 
   run(query) {
     return new Promise((resolve, reject) => {
-      console.log(`Rolling back changes: ${query.name}`);
+      console.log(`Rolling back changes: ${query.title}`);
       let db = this.db;
       query.run.down(db, function (err) {
         if (err) {
@@ -58,17 +61,19 @@ class down {
     });
   }
 
-  updateMigrationTable(query){
+  updateMigrationTable(query) {
     return new Promise((resolve, reject) => {
       let db = this.db;
-      db.execute(migration_settings.deleteMigration, [ query.file ],
-        { prepare: true }, function (err) {
-          if (err) {
-            reject (err);
-          } else {
-            resolve(`Successfully Rolled Back ${query.name}`);
-          }
-        });
+      delete query.run;
+      delete query.migration_number;
+      delete query.title;
+      db.execute(migration_settings.deleteMigration, query, { prepare: true }, function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(`Successfully Rolled Back ${query.title}`);
+        }
+      });
     })
   }
 
