@@ -11,36 +11,35 @@ var DB = require('./util/database');
  * Usage information.
  */
 
-// var usage = [
-//   '',
-//   '  example : ',
-//   '',
-//   '  cassandra-migrate [options] [command]',
-//   '',
-//   '  cassandra-migrate -k <keyspace> -c <cql_command>. (Runs a CQL command)',
-//   '',
-//   '  cassandra-migrate -k <keyspace>. (Runs pending cassandra migrations)',
-//   '',
-//   '  cassandra-migrate -k <keyspace> -n <migration_number>. (Runs cassandra migrations UP or DOWN. Decides automatically).',
-//   '',
-//   '  cassandra-migrate <create>. (Creates a new cassandra migration)',
-//   '',
-//   '  cassandra-migrate -k <keyspace> -s',
-//   '',
-//   '  cassandra-migrate <create> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
-//   '',
-//
-// ].join('\n');
-//
-// program.on('--help', function () {
-//   console.log(usage);
-// });
+var usage = [
+  '',
+  '  example : ',
+  '',
+  '  cassandra-migrate <command> [options]',
+  '',
+  '  cassandra-migrate up -k <keyspace> (Runs All pending cassandra migrations)',
+  '',
+  '  cassandra-migrate down -k <keyspace> (Rolls back a single cassandra migration)',
+  '',
+  '  cassandra-migrate <up/down> -n <migration_number>. (Runs cassandra migrations UP or DOWN to a particular migration number).',
+  '',
+  '  cassandra-migrate <up/down> -k <keyspace> -s <migration_number> (skips a migration, either adds or removes the migration from the migration table)',
+  '',
+  '  cassandra-migrate create <migration_name>. (Creates a new cassandra migration)',
+  '',
+  '  cassandra-migrate create <migration_name> -t <template> (Creates a new cassandra migrate but uses a specified template instead of default).',
+  '',
+
+].join('\n');
+
+program.on('--help', function () {
+  console.log(usage);
+});
 
 program
   .version(JSON.parse(fs.readFileSync(__dirname + '/package.json', 'utf8')).version)
   .option('-k, --keyspace "<keyspace>"', "The name of the keyspace to use.")
-  .option('-h, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
-  //.option('-p, --port "<port>"', "Defaults to cassandra default 9042.")
+  .option('-H, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
   .option('-u, --username "<username>"', "database username")
   .option('-p, --password "<password>"', "database password")
 ;
@@ -63,6 +62,7 @@ program
   .description('run pending migrations')
   .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
   .option('-s, --skip "<number>"', "adds the specified migration to the migration table without actually running it", false)
+  .option('-o, --options "<optionFile>"', "pass in a javascript option file for the cassandra driver, note that certain option file values can be overridden by provided flags")
   .action((options) => {
     let db = new DB(program);
     let common = new Common(fs, db);
@@ -98,6 +98,7 @@ program
   .description('roll back already run migrations')
   .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
   .option('-s, --skip "<number>"', "removes the specified migration from the migration table without actually running it", false)
+  .option('-o, --options "<optionFile>"', 'pass in a javascript option file for the cassandra driver, note that certain option file values can be overridden by provided flags (-u -p -k)')
   .action((options) => {
     console.log('in action down');
     let db = new DB(program);
@@ -141,4 +142,3 @@ program
  });
  */
 program.parse(process.argv);
-
