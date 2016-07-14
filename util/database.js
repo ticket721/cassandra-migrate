@@ -4,13 +4,16 @@ var cassandra = require('cassandra-driver');
 
 class Database {
   constructor(settings) {
+    console.log(settings.optionFile);
+    if(settings.options){
+      this.driverOptions = require(`${process.cwd()}/${settings.optionFile}`);
+    }
     settings.hosts = (settings.hosts)? settings.hosts.split(','):undefined;
     let envHosts = (process.env.DBHOST)?  process.env.DBHOST.split(','):undefined;
+    let hosts = settings.hosts || envHosts;
 
-    this.driverOptions = {
-      contactPoints: settings.hosts || envHosts || [ "localhost" ],
-      keyspace: settings.keyspace || process.env.DBKEYSPACE
-    };
+    this.driverOptions.contactPoints = hosts || this.driverOptions.contactPoints || [ "localhost" ];
+    this.driverOptions.keyspace = settings.keyspace || process.env.DBKEYSPACE || this.driverOptions.keyspace;
 
     var username = settings.username || process.env.DBUSER;
     var password = settings.password || process.env.DBPASSWORD;
