@@ -42,6 +42,7 @@ program
   .option('-H, --hosts "<host,host>"', "Comma seperated host addresses. Default is [\"localhost\"].")
   .option('-u, --username "<username>"', "database username")
   .option('-p, --password "<password>"', "database password")
+  .option('-o, --optionFile "<pathToFile>"', "pass in a javascript option file for the cassandra driver, note that certain option file values can be overridden by provided flags")
 ;
 
 program.name = 'cassandra-migrate';
@@ -62,7 +63,6 @@ program
   .description('run pending migrations')
   .option('-n, --num "<number>"', 'run migrations up to a specified migration number')
   .option('-s, --skip "<number>"', "adds the specified migration to the migration table without actually running it", false)
-  .option('-o, --options "<optionFile>"', "pass in a javascript option file for the cassandra driver, note that certain option file values can be overridden by provided flags")
   .action((options) => {
     let db = new DB(program);
     let common = new Common(fs, db);
@@ -98,9 +98,7 @@ program
   .description('roll back already run migrations')
   .option('-n, --num "<number>"', 'rollback migrations down to a specified migration number')
   .option('-s, --skip "<number>"', "removes the specified migration from the migration table without actually running it", false)
-  .option('-o, --options "<optionFile>"', 'pass in a javascript option file for the cassandra driver, note that certain option file values can be overridden by provided flags (-u -p -k)')
   .action((options) => {
-    console.log('in action down');
     let db = new DB(program);
     let common = new Common(fs, db);
     common.createMigrationTable()

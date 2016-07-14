@@ -10,7 +10,6 @@ class Common {
   }
 
   createMigrationTable() {
-    console.log('create migration table');
     return new Promise((resolve, reject) => {
       this.db.execute(migration_settings.createMigrationTable, null, { prepare: true }, function (err, response) {
         if (err) {
