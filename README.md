@@ -2,6 +2,11 @@
 
 Cassandra-migrate is a incremental migration tool for Cassandra.
 
+## Version 1.2.0 update
+Just added support for more robust Cassandra client configuration, now you can provide a path to a configuration file that can specify a Cassandra client option object directly as javascript.
+Cassandra client options configuration can found [here](http://docs.datastax.com/en/latest-nodejs-driver-api/global.html#ClientOptions). A user
+can override the client options file using either the command line flags, or environment variables
+
 ## Version 1.1.2 update
 the format of the migration table has changed, to facilitate the change over I've included an example migration file (0000000000_updateMigrationTable.js)
 that should nondestructivly update the migration table to the new format, just copy it into your migrations folder and run it before running any other migrations
@@ -10,7 +15,7 @@ that should nondestructivly update the migration table to the new format, just c
 - Uses the node cassandra-driver  to run incremental migrations on Cassandra database.
 - Uses Cassandra keyspace mentioned in commandline to keep track of ran migrations.
 - Automatically builds and run UP or DOWN until any migration number.
-- Creates a new incremental migration template by a single command. 
+- Creates a new incremental migration template by a single command.
 
 
 ## Installation
@@ -59,7 +64,7 @@ Skips a particular migration (either adds or removes the migration from the tabl
 Define host, username, and password. By default connects to [localhost] and default cassandra port [9042].
 
 ```
-    cassandra-migrate -h [10.10.10.1] -u username -p password
+    cassandra-migrate -H [10.10.10.1] -u username -p password
 ```
 
 Cassandra connection details can also be specified in environmental variables
@@ -68,6 +73,11 @@ Cassandra connection details can also be specified in environmental variables
     DBKEYSPACE : sets keyspace
     DBUSER : sets username
     DBPASSWORD : sets password;
+```
+
+As of 1.2.0 Cassandra connection details can now also be specified in configuration file [example](https://github.com/rleenders/cassandra-migrate/blob/options-file-flag/examples/sampleOptionFile.js) you can point to the file's relative path with:
+```
+  cassandra-migrate -o <path/to/file.js>
 ```
 
 More help.
