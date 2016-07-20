@@ -5,7 +5,7 @@ var cassandra = require('cassandra-driver');
 class Database {
   constructor(settings) {
     console.log(settings.optionFile);
-    if(settings.options){
+    if(settings.optionFile){
       this.driverOptions = require(`${process.cwd()}/${settings.optionFile}`);
     }
     settings.hosts = (settings.hosts)? settings.hosts.split(','):undefined;
