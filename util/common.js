@@ -78,7 +78,8 @@ class Common {
               }
             } else {
               if(this.filesRan[ n ]){
-                reject(`migration number ${n} already ran`);
+                console.log(`migration number ${n} already ran`);
+                process.exit(0);
               }else {
                 reject(`migration number ${n} not found in pending migrations`);
               }
@@ -95,7 +96,7 @@ class Common {
               }
             } else {
               if(this.filesAvail[ n ]){
-                reject(`migration number ${n} not run yet`);
+                console.log(`migration number ${n} not run yet`);
               }else {
                 reject(`migration number ${n} not found in pending rollbacks`);
               }
